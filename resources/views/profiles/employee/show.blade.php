@@ -57,6 +57,36 @@
                 </div>
                 @endif
                 
+                @if($profile->cnic)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">CNIC (National ID):</strong>
+                    <span>{{ $profile->cnic }}</span>
+                </div>
+                @endif
+                
+                @if($profile->city || $profile->state || $profile->country)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Location:</strong>
+                    <span>
+                        @if($profile->city){{ $profile->city }}@endif
+                        @if($profile->state){{ $profile->city ? ', ' : '' }}{{ $profile->state }}@endif
+                        @if($profile->country){{ ($profile->city || $profile->state) ? ', ' : '' }}{{ $profile->country }}@endif
+                    </span>
+                </div>
+                @elseif($profile->location)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Location:</strong>
+                    <span>{{ $profile->location }}</span>
+                </div>
+                @endif
+                
+                @if($profile->expected_salary)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Expected Salary:</strong>
+                    <span>{{ number_format($profile->expected_salary, 2) }}</span>
+                </div>
+                @endif
+                
                 @if($profile->date_of_birth)
                 <div>
                     <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Date of Birth:</strong>

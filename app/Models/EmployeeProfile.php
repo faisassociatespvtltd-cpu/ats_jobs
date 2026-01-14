@@ -13,6 +13,12 @@ class EmployeeProfile extends Model
         'address',
         'phone_number',
         'whatsapp_number',
+        'cnic',
+        'expected_salary',
+        'location',
+        'city',
+        'state',
+        'country',
         'date_of_birth',
         'gender',
         'bio',
@@ -25,6 +31,7 @@ class EmployeeProfile extends Model
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'expected_salary' => 'decimal:2',
     ];
 
     /**

@@ -65,6 +65,52 @@
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
+                    <label for="cnic">CNIC (National ID)</label>
+                    <input type="text" id="cnic" name="cnic" class="form-control" value="{{ old('cnic', $profile->cnic) }}" placeholder="12345-1234567-1">
+                    @error('cnic')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <div class="form-group" style="position: relative;">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city" class="form-control location-autocomplete" value="{{ old('city', $profile->city) }}" placeholder="Start typing city name..." autocomplete="off">
+                    <input type="hidden" id="location" name="location" value="{{ old('location', $profile->location) }}">
+                    <div id="location-suggestions" class="location-suggestions" style="display: none; position: absolute; background: white; border: 1px solid #edebe9; border-radius: 4px; max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-top: 4px;"></div>
+                    @error('city')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="state">State/Province</label>
+                    <input type="text" id="state" name="state" class="form-control" value="{{ old('state', $profile->state) }}" readonly style="background-color: #faf9f8;">
+                    @error('state')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <div class="form-group">
+                    <label for="country">Country</label>
+                    <input type="text" id="country" name="country" class="form-control" value="{{ old('country', $profile->country) }}" readonly style="background-color: #faf9f8;">
+                    @error('country')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="expected_salary">Expected Salary</label>
+                <input type="number" id="expected_salary" name="expected_salary" class="form-control" value="{{ old('expected_salary', $profile->expected_salary) }}" placeholder="50000" step="0.01" min="0">
+                @error('expected_salary')
+                    <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                @enderror
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
                     <label for="date_of_birth">Date of Birth</label>
                     <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" value="{{ old('date_of_birth', $profile->date_of_birth?->format('Y-m-d')) }}">
                     @error('date_of_birth')
@@ -142,5 +188,89 @@
         </div>
     </form>
 </div>
+
+@push('scripts')
+<script>
+    let debounceTimer;
+    const cityInput = document.getElementById('city');
+    const stateInput = document.getElementById('state');
+    const countryInput = document.getElementById('country');
+    const locationInput = document.getElementById('location');
+    const suggestionsDiv = document.getElementById('location-suggestions');
+    
+    if (cityInput) {
+        cityInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                stateInput.value = '';
+                countryInput.value = '';
+                locationInput.value = '';
+                return;
+            }
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchLocation(query);
+            }, 300);
+        });
+        
+        function searchLocation(query) {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    displaySuggestions(data);
+                })
+                .catch(error => {
+                    console.error('Location search error:', error);
+                });
+        }
+        
+        function displaySuggestions(results) {
+            suggestionsDiv.innerHTML = '';
+            
+            if (results.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            results.forEach(result => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #edebe9;';
+                item.onmouseover = function() { this.style.backgroundColor = '#faf9f8'; };
+                item.onmouseout = function() { this.style.backgroundColor = 'white'; };
+                
+                const city = result.address.city || result.address.town || result.address.village || result.address.municipality || result.name || '';
+                const state = result.address.state || result.address.region || '';
+                const country = result.address.country || '';
+                
+                item.textContent = `${city}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
+                
+                item.addEventListener('click', function() {
+                    cityInput.value = city;
+                    stateInput.value = state;
+                    countryInput.value = country;
+                    locationInput.value = `${city}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
+                    suggestionsDiv.style.display = 'none';
+                });
+                
+                suggestionsDiv.appendChild(item);
+            });
+            
+            suggestionsDiv.style.display = 'block';
+        }
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!cityInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+    }
+</script>
+@endpush
 @endsection
 
