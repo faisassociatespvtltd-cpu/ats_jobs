@@ -1,0 +1,222 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\EmployeeProfile;
+use App\Models\EmployerProfile;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class ProfileController extends Controller
+{
+    /**
+     * Show employee profile.
+     */
+    public function showEmployeeProfile()
+    {
+        $user = Auth::user();
+
+        if (!$user->isEmployee()) {
+            return redirect()->route('dashboard');
+        }
+
+        $profile = $user->employeeProfile;
+
+        if (!$profile) {
+            return redirect()->route('employee.profile.complete');
+        }
+
+        return view('profiles.employee.show', compact('profile'));
+    }
+
+    /**
+     * Show employee profile edit form.
+     */
+    public function editEmployeeProfile()
+    {
+        $user = Auth::user();
+
+        if (!$user->isEmployee()) {
+            return redirect()->route('dashboard');
+        }
+
+        $profile = $user->employeeProfile;
+
+        if (!$profile) {
+            return redirect()->route('employee.profile.complete');
+        }
+
+        return view('profiles.employee.edit', compact('profile'));
+    }
+
+    /**
+     * Update employee profile.
+     */
+    public function updateEmployeeProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->isEmployee()) {
+            return redirect()->route('dashboard');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'address' => 'nullable|string',
+            'phone_number' => 'nullable|string|max:20',
+            'whatsapp_number' => 'nullable|string|max:20',
+            'date_of_birth' => 'nullable|date',
+            'gender' => 'nullable|in:male,female,other',
+            'bio' => 'nullable|string',
+            'education_level' => 'nullable|string|max:255',
+            'skills' => 'nullable|string',
+            'experience' => 'nullable|string',
+            'linkedin_url' => 'nullable|url',
+            'portfolio_url' => 'nullable|url',
+            'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+        ]);
+
+        $profile = $user->employeeProfile;
+
+        if (!$profile) {
+            return redirect()->route('employee.profile.complete');
+        }
+
+        // Update CV if provided
+        if ($request->hasFile('cv')) {
+            // Delete old CV if exists
+            if ($user->cv_path) {
+                Storage::disk('public')->delete($user->cv_path);
+            }
+
+            $cvPath = $request->file('cv')->store('cvs', 'public');
+            $user->cv_path = $cvPath;
+            $user->save();
+        }
+
+        // Update profile
+        $profile->update([
+            'name' => $request->name,
+            'address' => $request->address,
+            'phone_number' => $request->phone_number,
+            'whatsapp_number' => $request->whatsapp_number,
+            'date_of_birth' => $request->date_of_birth,
+            'gender' => $request->gender,
+            'bio' => $request->bio,
+            'education_level' => $request->education_level,
+            'skills' => $request->skills,
+            'experience' => $request->experience,
+            'linkedin_url' => $request->linkedin_url,
+            'portfolio_url' => $request->portfolio_url,
+        ]);
+
+        $user->name = $request->name;
+        $user->save();
+
+        return redirect()->route('employee.profile')->with('success', 'Profile updated successfully.');
+    }
+
+    /**
+     * Show employer profile.
+     */
+    public function showEmployerProfile()
+    {
+        $user = Auth::user();
+
+        if (!$user->isEmployer()) {
+            return redirect()->route('dashboard');
+        }
+
+        $profile = $user->employerProfile;
+
+        if (!$profile) {
+            return redirect()->route('employer.profile.complete');
+        }
+
+        return view('profiles.employer.show', compact('profile'));
+    }
+
+    /**
+     * Show employer profile edit form.
+     */
+    public function editEmployerProfile()
+    {
+        $user = Auth::user();
+
+        if (!$user->isEmployer()) {
+            return redirect()->route('dashboard');
+        }
+
+        $profile = $user->employerProfile;
+
+        if (!$profile) {
+            return redirect()->route('employer.profile.complete');
+        }
+
+        return view('profiles.employer.edit', compact('profile'));
+    }
+
+    /**
+     * Update employer profile.
+     */
+    public function updateEmployerProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->isEmployer()) {
+            return redirect()->route('dashboard');
+        }
+
+        $request->validate([
+            'company_name' => 'required|string|max:255',
+            'company_address' => 'nullable|string',
+            'contact_person_name' => 'nullable|string|max:255',
+            'phone_number' => 'nullable|string|max:20',
+            'whatsapp_number' => 'nullable|string|max:20',
+            'website_url' => 'nullable|url',
+            'company_description' => 'nullable|string',
+            'industry' => 'nullable|string|max:255',
+            'company_size' => 'nullable|string|max:255',
+            'linkedin_url' => 'nullable|url',
+            'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $profile = $user->employerProfile;
+
+        if (!$profile) {
+            return redirect()->route('employer.profile.complete');
+        }
+
+        // Update logo if provided
+        if ($request->hasFile('company_logo')) {
+            // Delete old logo if exists
+            if ($user->company_logo_path) {
+                Storage::disk('public')->delete($user->company_logo_path);
+            }
+
+            $logoPath = $request->file('company_logo')->store('company-logos', 'public');
+            $user->company_logo_path = $logoPath;
+            $user->save();
+        }
+
+        // Update profile
+        $profile->update([
+            'company_name' => $request->company_name,
+            'company_address' => $request->company_address,
+            'contact_person_name' => $request->contact_person_name,
+            'phone_number' => $request->phone_number,
+            'whatsapp_number' => $request->whatsapp_number,
+            'website_url' => $request->website_url,
+            'company_description' => $request->company_description,
+            'industry' => $request->industry,
+            'company_size' => $request->company_size,
+            'linkedin_url' => $request->linkedin_url,
+        ]);
+
+        $user->name = $request->company_name;
+        $user->save();
+
+        return redirect()->route('employer.profile')->with('success', 'Profile updated successfully.');
+    }
+}

@@ -21,6 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'user_type',
+        'cv_path',
+        'company_logo_path',
+        'email_verification_token',
     ];
 
     /**
@@ -44,5 +48,37 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the employee profile for this user.
+     */
+    public function employeeProfile()
+    {
+        return $this->hasOne(EmployeeProfile::class);
+    }
+
+    /**
+     * Get the employer profile for this user.
+     */
+    public function employerProfile()
+    {
+        return $this->hasOne(EmployerProfile::class);
+    }
+
+    /**
+     * Check if user is an employee.
+     */
+    public function isEmployee()
+    {
+        return $this->user_type === 'employee';
+    }
+
+    /**
+     * Check if user is an employer.
+     */
+    public function isEmployer()
+    {
+        return $this->user_type === 'employer';
     }
 }

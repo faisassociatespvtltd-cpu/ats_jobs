@@ -394,7 +394,20 @@
             </li>
         </ul>
         <div class="navbar-actions">
-            <a href="#" style="color: white; text-decoration: none; padding: 8px;">Profile</a>
+            @auth
+                @if(auth()->user()->isEmployee())
+                    <a href="{{ route('employee.profile') }}" style="color: white; text-decoration: none; padding: 8px;">My Profile</a>
+                @elseif(auth()->user()->isEmployer())
+                    <a href="{{ route('employer.profile') }}" style="color: white; text-decoration: none; padding: 8px;">My Profile</a>
+                @endif
+                <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                    @csrf
+                    <button type="submit" style="background: none; border: none; color: white; cursor: pointer; padding: 8px;">Logout</button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" style="color: white; text-decoration: none; padding: 8px;">Login</a>
+                <a href="{{ route('welcome') }}" style="color: white; text-decoration: none; padding: 8px;">Sign Up</a>
+            @endauth
         </div>
     </nav>
     
