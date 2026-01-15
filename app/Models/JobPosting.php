@@ -12,9 +12,9 @@ class JobPosting extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'title', 'description', 'company_name', 'location', 'job_type',
+        'title', 'description', 'company_name', 'location', 'required_skills', 'job_type',
         'salary_min', 'salary_max', 'experience_level', 'posted_date',
-        'closing_date', 'status', 'posted_by', 'requirements', 'benefits'
+        'closing_date', 'status', 'posted_by', 'requirements', 'benefits', 'other_details'
     ];
 
     protected $casts = [

@@ -18,6 +18,11 @@ class EmployerProfile extends Model
         'company_description',
         'industry',
         'company_size',
+        'license_number',
+        'registration_number',
+        'tax_number',
+        'company_type',
+        'founded_year',
         'linkedin_url',
     ];
 

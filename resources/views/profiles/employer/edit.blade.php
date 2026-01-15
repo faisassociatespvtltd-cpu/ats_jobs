@@ -96,6 +96,50 @@
                     @enderror
                 </div>
             </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="license_number">License Number</label>
+                    <input type="text" id="license_number" name="license_number" class="form-control" value="{{ old('license_number', $profile->license_number) }}">
+                    @error('license_number')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="registration_number">Registration Number</label>
+                    <input type="text" id="registration_number" name="registration_number" class="form-control" value="{{ old('registration_number', $profile->registration_number) }}">
+                    @error('registration_number')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="tax_number">Tax Number</label>
+                    <input type="text" id="tax_number" name="tax_number" class="form-control" value="{{ old('tax_number', $profile->tax_number) }}">
+                    @error('tax_number')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="company_type">Company Type</label>
+                    <input type="text" id="company_type" name="company_type" class="form-control" value="{{ old('company_type', $profile->company_type) }}" placeholder="e.g., Pvt Ltd, LLC">
+                    @error('company_type')
+                        <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="founded_year">Founded Year</label>
+                <input type="number" id="founded_year" name="founded_year" class="form-control" value="{{ old('founded_year', $profile->founded_year) }}" min="1800" max="{{ date('Y') }}" placeholder="e.g., 2012">
+                @error('founded_year')
+                    <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                @enderror
+            </div>
             
             <div class="form-group">
                 <label for="company_description">Company Description</label>

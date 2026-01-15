@@ -251,6 +251,11 @@ class AuthController extends Controller
             'company_description' => 'nullable|string',
             'industry' => 'nullable|string|max:255',
             'company_size' => 'nullable|string|max:255',
+            'license_number' => 'nullable|string|max:255',
+            'registration_number' => 'nullable|string|max:255',
+            'tax_number' => 'nullable|string|max:255',
+            'company_type' => 'nullable|string|max:255',
+            'founded_year' => 'nullable|integer|min:1800|max:' . date('Y'),
         ]);
 
         $user = Auth::user();
@@ -266,6 +271,11 @@ class AuthController extends Controller
             'company_description' => $request->company_description,
             'industry' => $request->industry,
             'company_size' => $request->company_size,
+            'license_number' => $request->license_number,
+            'registration_number' => $request->registration_number,
+            'tax_number' => $request->tax_number,
+            'company_type' => $request->company_type,
+            'founded_year' => $request->founded_year,
         ]);
 
         $user->name = $request->company_name;

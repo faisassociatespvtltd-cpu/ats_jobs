@@ -13,8 +13,8 @@ class Applicant extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'job_posting_id', 'first_name', 'last_name', 'email', 'phone',
-        'cover_letter', 'status', 'resume_id', 'application_date',
+        'job_posting_id', 'user_id', 'first_name', 'last_name', 'email', 'phone',
+        'cover_letter', 'status', 'resume_id', 'cv_path', 'application_date',
         'notes', 'rating'
     ];
 
@@ -26,6 +26,11 @@ class Applicant extends Model
     public function jobPosting(): BelongsTo
     {
         return $this->belongsTo(JobPosting::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function resume(): HasOne

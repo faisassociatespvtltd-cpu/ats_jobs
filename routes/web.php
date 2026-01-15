@@ -14,6 +14,7 @@ use App\Http\Controllers\ForumController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\JobApplicationController;
 
 // Welcome and Authentication Routes
 Route::get('/', function () {
@@ -60,6 +61,16 @@ Route::middleware('auth')->group(function () {
 // Dashboard and other routes (Protected)
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Employee Job Discovery
+    Route::get('/jobs', [JobPostingController::class, 'employeeIndex'])->name('jobs.index');
+    Route::get('/jobs/{jobPosting}', [JobPostingController::class, 'employeeShow'])->name('jobs.show');
+    Route::post('/jobs/{jobPosting}/apply', [JobPostingController::class, 'apply'])->name('jobs.apply');
+    Route::post('/jobs/{jobPosting}/apply', [JobApplicationController::class, 'apply'])->name('jobs.apply');
+
+    // Employer Job Dashboard
+    Route::get('/employer/jobs', [JobPostingController::class, 'employerIndex'])->name('employer.jobs');
+    Route::get('/employer/jobs/{jobPosting}/applicants', [JobPostingController::class, 'applicants'])->name('employer.jobs.applicants');
 
     // Job Postings
     Route::resource('job-postings', JobPostingController::class);

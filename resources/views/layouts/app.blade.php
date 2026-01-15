@@ -343,6 +343,32 @@
         .pagination li a:hover {
             background-color: var(--hover-bg);
         }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            z-index: 2000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            max-width: 360px;
+        }
+
+        .toast-success {
+            background-color: #107c10;
+        }
+
+        .toast-error {
+            background-color: #d13438;
+        }
+
+        .toast-info {
+            background-color: #0078D4;
+        }
     </style>
     
     @stack('styles')
@@ -355,7 +381,14 @@
             <li>
                 <a href="#">ATS Recruitment</a>
                 <ul class="submenu">
-                    <li><a href="{{ route('job-postings.index') }}">Job Postings</a></li>
+                    @auth
+                        @if(auth()->user()->isEmployer())
+                            <li><a href="{{ route('job-postings.index') }}">Job Postings</a></li>
+                            <li><a href="{{ route('employer.jobs') }}">Employer Jobs</a></li>
+                        @else
+                            <li><a href="{{ route('jobs.index') }}">Job Board</a></li>
+                        @endif
+                    @endauth
                     <li><a href="{{ route('applicants.index') }}">Applicants</a></li>
                     <li><a href="{{ route('interviews.index') }}">Interviews</a></li>
                     <li><a href="{{ route('resumes.index') }}">Resume Parsing</a></li>
@@ -415,6 +448,22 @@
     <div class="main-container">
         @yield('content')
     </div>
+
+    @if(session('toast'))
+        <div class="toast toast-{{ session('toast.type') }}">
+            {{ session('toast.message') }}
+        </div>
+        <script>
+            setTimeout(() => {
+                const toast = document.querySelector('.toast');
+                if (toast) {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.4s';
+                    setTimeout(() => toast.remove(), 400);
+                }
+            }, 3000);
+        </script>
+    @endif
     
     @stack('scripts')
 </body>

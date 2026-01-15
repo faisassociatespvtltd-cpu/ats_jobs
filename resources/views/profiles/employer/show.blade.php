@@ -90,6 +90,41 @@
                     <span>{{ $profile->company_size }}</span>
                 </div>
                 @endif
+
+                @if($profile->license_number)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">License Number:</strong>
+                    <span>{{ $profile->license_number }}</span>
+                </div>
+                @endif
+
+                @if($profile->registration_number)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Registration Number:</strong>
+                    <span>{{ $profile->registration_number }}</span>
+                </div>
+                @endif
+
+                @if($profile->tax_number)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Tax Number:</strong>
+                    <span>{{ $profile->tax_number }}</span>
+                </div>
+                @endif
+
+                @if($profile->company_type)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Company Type:</strong>
+                    <span>{{ $profile->company_type }}</span>
+                </div>
+                @endif
+
+                @if($profile->founded_year)
+                <div>
+                    <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Founded Year:</strong>
+                    <span>{{ $profile->founded_year }}</span>
+                </div>
+                @endif
                 
                 @if($profile->linkedin_url)
                 <div>
