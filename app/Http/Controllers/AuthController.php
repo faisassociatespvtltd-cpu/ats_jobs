@@ -117,6 +117,8 @@ class AuthController extends Controller
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:255',
+            'skills' => 'nullable|string|max:2000',
+            'experience' => 'nullable|string|max:2000',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|in:male,female,other',
         ]);
@@ -135,6 +137,8 @@ class AuthController extends Controller
             'city' => $request->city,
             'state' => $request->state,
             'country' => $request->country,
+            'skills' => $request->skills,
+            'experience' => $request->experience,
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
         ]);

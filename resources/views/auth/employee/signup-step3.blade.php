@@ -311,6 +311,22 @@
                     <div class="error-message">{{ $message }}</div>
                 @enderror
             </div>
+
+            <div class="form-group">
+                <label for="skills">Skills</label>
+                <textarea id="skills" name="skills" class="form-control" rows="3" placeholder="e.g., Laravel, MySQL, REST APIs">{{ old('skills') }}</textarea>
+                @error('skills')
+                    <div class="error-message">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="experience">Experience</label>
+                <textarea id="experience" name="experience" class="form-control" rows="3" placeholder="e.g., 2 years in web development">{{ old('experience') }}</textarea>
+                @error('experience')
+                    <div class="error-message">{{ $message }}</div>
+                @enderror
+            </div>
             
             <div class="form-row">
                 <div class="form-group">
