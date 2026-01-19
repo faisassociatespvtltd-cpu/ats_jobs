@@ -7,6 +7,7 @@ use App\Models\EmployerProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ResumeParserService;
 
 class ProfileController extends Controller
 {
@@ -122,6 +123,23 @@ class ProfileController extends Controller
             'linkedin_url' => $request->linkedin_url,
             'portfolio_url' => $request->portfolio_url,
         ]);
+
+        if ($user->cv_path && (!$request->skills || !$request->experience)) {
+            $parser = new ResumeParserService();
+            $parsed = $parser->parseFromStorage($user->cv_path);
+
+            $updates = [];
+            if (!$request->skills && !empty($parsed['skills'])) {
+                $updates['skills'] = implode(', ', $parsed['skills']);
+            }
+            if (!$request->experience && !empty($parsed['experience'])) {
+                $updates['experience'] = $parsed['experience'];
+            }
+
+            if (!empty($updates)) {
+                $profile->update($updates);
+            }
+        }
 
         $user->name = $request->name;
         $user->save();

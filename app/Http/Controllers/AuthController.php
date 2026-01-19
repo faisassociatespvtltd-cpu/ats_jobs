@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use App\Services\ResumeParserService;
 
 class AuthController extends Controller
 {
@@ -125,7 +126,7 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        EmployeeProfile::create([
+        $profile = EmployeeProfile::create([
             'user_id' => $user->id,
             'name' => $request->name,
             'address' => $request->address,
@@ -142,6 +143,23 @@ class AuthController extends Controller
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
         ]);
+
+        if ($user->cv_path && (!$request->skills || !$request->experience)) {
+            $parser = new ResumeParserService();
+            $parsed = $parser->parseFromStorage($user->cv_path);
+
+            $updates = [];
+            if (!$request->skills && !empty($parsed['skills'])) {
+                $updates['skills'] = implode(', ', $parsed['skills']);
+            }
+            if (!$request->experience && !empty($parsed['experience'])) {
+                $updates['experience'] = $parsed['experience'];
+            }
+
+            if (!empty($updates)) {
+                $profile->update($updates);
+            }
+        }
 
         $user->name = $request->name;
         $user->save();
