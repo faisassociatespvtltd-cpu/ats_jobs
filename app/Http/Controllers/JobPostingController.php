@@ -6,6 +6,7 @@ use App\Models\JobPosting;
 use App\Models\Applicant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\JobParserService;
 
 class JobPostingController extends Controller
 {
@@ -72,22 +73,38 @@ class JobPostingController extends Controller
             'salary_min' => 'nullable|numeric',
             'salary_max' => 'nullable|numeric',
             'experience_level' => 'nullable|string',
+            'education_required' => 'nullable|string|max:255',
+            'experience_required' => 'nullable|string|max:255',
             'closing_date' => 'required|date|after_or_equal:today',
             'status' => 'nullable|in:draft,active,closed,cancelled',
             'requirements' => 'nullable|array',
             'benefits' => 'nullable|array',
-            'other_details' => 'nullable|string',
         ]);
         
         $validated['posted_by'] = auth()->id();
         $validated['posted_date'] = now();
         $validated['status'] = $validated['status'] ?? 'active';
         
+        $parser = new JobParserService();
+        $parsed = $parser->parse($validated['description']);
+
+        $validated['required_skills'] = $validated['required_skills'] ?: ($parsed['required_skills'] ?? null);
+        $validated['responsibilities'] = $validated['responsibilities'] ?? $parsed['responsibilities'] ?? null;
+        $validated['qualifications'] = $validated['qualifications'] ?? $parsed['qualifications'] ?? null;
+        $validated['salary_range'] = $validated['salary_range'] ?? $parsed['salary_range'] ?? null;
+        $validated['hard_skills'] = $parsed['hard_skills'] ?? null;
+        $validated['soft_skills'] = $parsed['soft_skills'] ?? null;
+        $validated['parsed_at'] = now();
+
+        if (!empty($parsed['closing_date']) && empty($validated['closing_date'])) {
+            $validated['closing_date'] = $parsed['closing_date'];
+        }
+
         JobPosting::create($validated);
         
         return redirect()->route('employer.jobs')->with('toast', [
             'type' => 'success',
-            'message' => 'Job posted successfully! You can view your posted jobs in your dashboard.',
+            'message' => 'Job successfully parsed and posted! You can view your posted jobs in your dashboard.',
         ]);
     }
     
@@ -115,11 +132,12 @@ class JobPostingController extends Controller
             'salary_min' => 'nullable|numeric',
             'salary_max' => 'nullable|numeric',
             'experience_level' => 'nullable|string',
+            'education_required' => 'nullable|string|max:255',
+            'experience_required' => 'nullable|string|max:255',
             'closing_date' => 'required|date|after_or_equal:today',
             'status' => 'required|in:draft,active,closed,cancelled',
             'requirements' => 'nullable|array',
             'benefits' => 'nullable|array',
-            'other_details' => 'nullable|string',
         ]);
         
         $jobPosting->update($validated);
@@ -167,6 +185,24 @@ class JobPostingController extends Controller
         }
 
         $jobs = $query->orderByDesc('posted_date')->paginate(20);
+
+        if ($profile && !$request->hasAny(['location', 'skills', 'job_type'])) {
+            $profileSkills = array_filter(array_map('trim', explode(',', (string) $profile->skills)));
+            $matched = $jobs->filter(function ($job) use ($profileSkills) {
+                if (empty($profileSkills)) {
+                    return false;
+                }
+                $jobSkills = array_map('trim', explode(',', (string) $job->required_skills));
+                return count(array_intersect(array_map('strtolower', $profileSkills), array_map('strtolower', $jobSkills))) > 0;
+            });
+
+            if ($matched->count() > 0) {
+                session()->flash('toast', [
+                    'type' => 'success',
+                    'message' => 'New job opportunities found that match your skills!',
+                ]);
+            }
+        }
 
         return view('jobs.index', [
             'jobs' => $jobs,

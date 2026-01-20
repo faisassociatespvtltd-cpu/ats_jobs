@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
 
     // Resumes
     Route::resource('resumes', ResumeController::class);
+    Route::get('resumes/{resume}/print', [ResumeController::class, 'print'])->name('resumes.print');
 
     // Labour Laws
     Route::resource('labour-laws', LabourLawController::class);

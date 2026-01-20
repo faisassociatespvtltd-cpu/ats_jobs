@@ -387,6 +387,7 @@
                             <li><a href="{{ route('employer.jobs') }}">Employer Jobs</a></li>
                         @else
                             <li><a href="{{ route('jobs.index') }}">Job Board</a></li>
+                            <li><a href="{{ route('resumes.index') }}">Resume Parsing</a></li>
                         @endif
                     @endauth
                     <li><a href="{{ route('applicants.index') }}">Applicants</a></li>

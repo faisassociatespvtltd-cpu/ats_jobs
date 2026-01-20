@@ -79,6 +79,20 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div class="form-group">
+                <label>Education Required</label>
+                <input type="text" name="education_required" class="form-control" value="{{ old('education_required', $jobPosting->education_required) }}" placeholder="e.g., Bachelor's in CS">
+                @error('education_required') <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="form-group">
+                <label>Experience Required</label>
+                <input type="text" name="experience_required" class="form-control" value="{{ old('experience_required', $jobPosting->experience_required) }}" placeholder="e.g., 3-5 years">
+                @error('experience_required') <div style="color: #d13438; font-size: 12px; margin-top: 4px;">{{ $message }}</div> @enderror
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group">
                 <label>Salary Min</label>
                 <input type="number" name="salary_min" class="form-control" value="{{ old('salary_min', $jobPosting->salary_min) }}" step="0.01">
             </div>
@@ -97,11 +111,6 @@
                 <option value="closed" {{ old('status', $jobPosting->status) == 'closed' ? 'selected' : '' }}>Closed</option>
                 <option value="cancelled" {{ old('status', $jobPosting->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
             </select>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 16px;">
-            <label>Other Relevant Details</label>
-            <textarea name="other_details" class="form-control" rows="4" placeholder="Any additional information about the role...">{{ old('other_details', $jobPosting->other_details) }}</textarea>
         </div>
 
         <div style="margin-bottom: 16px;">

@@ -8,15 +8,33 @@ use ZipArchive;
 
 class ResumeParserService
 {
+    protected ?string $lastError = null;
+
     public function parseFromStorage(string $relativePath): array
     {
         $fullPath = Storage::disk('public')->path($relativePath);
+        $this->lastError = null;
         $text = $this->extractText($fullPath);
+
+        $education = $this->extractSectionLines($text, ['education', 'academic background', 'academics']);
+        $experienceLines = $this->extractSectionLines($text, ['experience', 'work experience', 'employment', 'professional experience']);
+        $skills = $this->extractSkills($text);
 
         return [
             'text' => $text,
-            'skills' => $this->extractSkills($text),
-            'experience' => $this->extractExperience($text),
+            'error' => $this->lastError,
+            'name' => $this->extractName($text),
+            'email' => $this->extractEmail($text),
+            'phone' => $this->extractPhone($text),
+            'address' => $this->extractAddress($text),
+            'linkedin' => $this->extractUrl($text, 'linkedin.com'),
+            'github' => $this->extractUrl($text, 'github.com'),
+            'website' => $this->extractGenericUrl($text),
+            'skills' => $skills,
+            'experience_summary' => $this->extractExperienceSummary($text),
+            'experience_items' => $this->normalizeSectionItems($experienceLines),
+            'education' => $this->normalizeSectionItems($education),
+            'timeline' => $this->extractTimeline(array_merge($experienceLines, $education)),
         ];
     }
 
@@ -32,12 +50,19 @@ class ResumeParserService
             return $this->extractDocxText($path);
         }
 
+        $this->lastError = 'Unsupported file type. Please upload PDF or DOCX.';
         return '';
     }
 
     protected function extractPdfText(string $path): string
     {
         if (!function_exists('shell_exec')) {
+            $this->lastError = 'PDF parsing failed: shell_exec is disabled on this server.';
+            return '';
+        }
+
+        if (!$this->isPdfToTextAvailable()) {
+            $this->lastError = 'PDF parsing failed: pdftotext is not installed on the server.';
             return '';
         }
 
@@ -50,6 +75,7 @@ class ResumeParserService
             return $output;
         }
 
+        $this->lastError = 'PDF parsing failed: unable to read text from file.';
         Log::warning('PDF parsing failed or pdftotext not available.', ['path' => $path]);
         return '';
     }
@@ -58,12 +84,14 @@ class ResumeParserService
     {
         $zip = new ZipArchive();
         if ($zip->open($path) !== true) {
+            $this->lastError = 'DOCX parsing failed: unable to open file.';
             return '';
         }
 
         $index = $zip->locateName('word/document.xml');
         if ($index === false) {
             $zip->close();
+            $this->lastError = 'DOCX parsing failed: document.xml not found.';
             return '';
         }
 
@@ -71,12 +99,16 @@ class ResumeParserService
         $zip->close();
 
         if (!is_string($xml)) {
+            $this->lastError = 'DOCX parsing failed: invalid document content.';
             return '';
         }
 
+        $xml = str_replace(['</w:p>', '</w:br>'], "\n", $xml);
         $text = strip_tags($xml);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_XML1, 'UTF-8');
-        $text = preg_replace('/\s+/', ' ', $text);
+        $text = preg_replace("/\r\n|\r/", "\n", $text);
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
 
         return trim((string) $text);
     }
@@ -85,6 +117,16 @@ class ResumeParserService
     {
         if ($text === '') {
             return [];
+        }
+
+        $sectionSkills = $this->extractSectionLines($text, ['skills', 'technical skills', 'key skills']);
+        if (!empty($sectionSkills)) {
+            $joined = implode(' ', $sectionSkills);
+            $candidates = preg_split('/[,;\/\|]+|\s{2,}/', $joined);
+            $cleaned = array_filter(array_map('trim', $candidates));
+            if (!empty($cleaned)) {
+                return array_values(array_unique($cleaned));
+            }
         }
 
         $skillLibrary = [
@@ -103,7 +145,7 @@ class ResumeParserService
         return array_values(array_unique($found));
     }
 
-    protected function extractExperience(string $text): ?string
+    protected function extractExperienceSummary(string $text): ?string
     {
         if ($text === '') {
             return null;
@@ -114,6 +156,165 @@ class ResumeParserService
         }
 
         return null;
+    }
+
+    protected function extractUrl(string $text, string $domain): ?string
+    {
+        if (preg_match('/https?:\/\/(?:www\.)?' . preg_quote($domain, '/') . '\/[^\s]+/i', $text, $matches)) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    protected function extractGenericUrl(string $text): ?string
+    {
+        if (preg_match('/https?:\/\/[^\s]+/i', $text, $matches)) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    protected function extractEmail(string $text): ?string
+    {
+        if (preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $text, $matches)) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    protected function extractPhone(string $text): ?string
+    {
+        if (preg_match('/(\+?\d{1,3}[\s\-]?)?(\(?\d{3,4}\)?[\s\-]?)?\d{3,4}[\s\-]?\d{3,4}/', $text, $matches)) {
+            return trim($matches[0]);
+        }
+
+        return null;
+    }
+
+    protected function extractName(string $text): ?string
+    {
+        $lines = $this->getLines($text);
+        foreach ($lines as $line) {
+            if (strlen($line) < 3) {
+                continue;
+            }
+            if (filter_var($line, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            if (preg_match('/\d{3,}/', $line)) {
+                continue;
+            }
+            if (preg_match('/\b(resume|cv|curriculum vitae|profile)\b/i', $line)) {
+                continue;
+            }
+            if (str_word_count($line) <= 4 && strlen($line) <= 40) {
+                return $line;
+            }
+        }
+
+        return null;
+    }
+
+    protected function extractAddress(string $text): ?string
+    {
+        $lines = $this->getLines($text);
+        foreach ($lines as $line) {
+            if (preg_match('/\b(address|location|city|country)\b/i', $line)) {
+                return trim(preg_replace('/\b(address|location)\b\s*[:\-]?\s*/i', '', $line));
+            }
+        }
+
+        return null;
+    }
+
+    protected function extractSectionLines(string $text, array $keywords): array
+    {
+        $lines = $this->getLines($text);
+        $startIndex = null;
+
+        foreach ($lines as $index => $line) {
+            foreach ($keywords as $keyword) {
+                if (preg_match('/^' . preg_quote($keyword, '/') . '\b/i', $line)) {
+                    $startIndex = $index + 1;
+                    break 2;
+                }
+            }
+        }
+
+        if ($startIndex === null) {
+            return [];
+        }
+
+        $section = [];
+        for ($i = $startIndex; $i < count($lines); $i++) {
+            $line = $lines[$i];
+            if ($line === '') {
+                break;
+            }
+            if (preg_match('/^[A-Z][A-Za-z\s]{2,}$/', $line)) {
+                break;
+            }
+            $section[] = trim(ltrim($line, "-•*·\t "));
+        }
+
+        return $section;
+    }
+
+    protected function normalizeSectionItems(array $lines): array
+    {
+        $items = [];
+        foreach ($lines as $line) {
+            $chunks = preg_split('/[•\-\*]+/', $line);
+            foreach ($chunks as $chunk) {
+                $chunk = trim($chunk);
+                if ($chunk !== '') {
+                    $items[] = $chunk;
+                }
+            }
+        }
+
+        return array_values(array_unique($items));
+    }
+
+    protected function extractTimeline(array $experienceLines): array
+    {
+        $timeline = [];
+        foreach ($experienceLines as $line) {
+            if (preg_match('/\b(19|20)\d{2}\b\s*[-–]\s*\b(19|20)\d{2}\b/', $line, $matches)) {
+                $timeline[] = $matches[0];
+                continue;
+            }
+            if (preg_match('/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b\s*[-–]\s*\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b/i', $line, $matches)) {
+                $timeline[] = $matches[0];
+            }
+        }
+
+        return array_values(array_unique($timeline));
+    }
+
+    protected function getLines(string $text): array
+    {
+        $lines = preg_split("/\n+/", $text);
+        $clean = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $clean[] = $line;
+            }
+        }
+        return $clean;
+    }
+
+    protected function isPdfToTextAvailable(): bool
+    {
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $command = $isWindows ? 'where pdftotext' : 'which pdftotext';
+        $output = shell_exec($command);
+
+        return is_string($output) && trim($output) !== '';
     }
 }
 

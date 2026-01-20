@@ -6,6 +6,7 @@ use App\Models\Resume;
 use App\Models\Applicant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ResumeParserService;
 
 class ResumeController extends Controller
 {
@@ -58,7 +59,7 @@ class ResumeController extends Controller
             $fileName = time() . '_' . $file->getClientOriginalName();
             $filePath = $file->storeAs('resumes', $fileName, 'public');
             
-            Resume::create([
+            $resume = Resume::create([
                 'applicant_id' => $validated['applicant_id'] ?? null,
                 'file_path' => $filePath,
                 'file_name' => $file->getClientOriginalName(),
@@ -66,9 +67,33 @@ class ResumeController extends Controller
                 'file_size' => $file->getSize(),
                 'parsing_status' => 'pending',
             ]);
+
+            $parser = new ResumeParserService();
+            $parsed = $parser->parseFromStorage($filePath);
+
+            $resume->update([
+                'parsed_content' => [
+                    'text' => $parsed['text'] ?? '',
+                    'error' => $parsed['error'] ?? null,
+                    'name' => $parsed['name'] ?? null,
+                    'email' => $parsed['email'] ?? null,
+                    'phone' => $parsed['phone'] ?? null,
+                    'address' => $parsed['address'] ?? null,
+                    'linkedin' => $parsed['linkedin'] ?? null,
+                    'github' => $parsed['github'] ?? null,
+                    'website' => $parsed['website'] ?? null,
+                    'education' => $parsed['education'] ?? [],
+                    'experience' => $parsed['experience_items'] ?? [],
+                    'timeline' => $parsed['timeline'] ?? [],
+                ],
+                'skills' => $parsed['skills'] ?? null,
+                'experience' => $parsed['experience_items'] ?? null,
+                'education' => $parsed['education'] ?? null,
+                'parsing_status' => empty($parsed['text']) ? 'failed' : 'completed',
+            ]);
         }
         
-        return redirect()->route('resumes.index')->with('success', 'Resume uploaded successfully.');
+        return redirect()->route('resumes.index')->with('success', 'Resume uploaded and parsed successfully.');
     }
     
     public function show(Resume $resume)
@@ -115,5 +140,11 @@ class ResumeController extends Controller
         }
         
         return redirect()->back()->with('error', 'File not found.');
+    }
+
+    public function print(Resume $resume)
+    {
+        $resume->load('applicant');
+        return view('resumes.print', compact('resume'));
     }
 }
