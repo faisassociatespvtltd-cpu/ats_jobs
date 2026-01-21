@@ -99,7 +99,19 @@ class AuthController extends Controller
             return redirect()->route('employee.signup.step2');
         }
 
-        return view('auth.employee.signup-step3');
+        $user = Auth::user();
+        $parsedData = [];
+
+        if ($user->cv_path) {
+            try {
+                $parser = new ResumeParserService();
+                $parsedData = $parser->parseFromStorage($user->cv_path);
+            } catch (\Exception $e) {
+                \Log::error('Failed to parse resume during signup', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return view('auth.employee.signup-step3', compact('parsedData'));
     }
 
     /**
@@ -107,6 +119,12 @@ class AuthController extends Controller
      */
     public function employeeSignupStep3(Request $request)
     {
+        if (!Auth::check() || !Auth::user()->isEmployee()) {
+            return redirect()->route('employee.signup');
+        }
+
+        $user = Auth::user();
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
@@ -124,9 +142,7 @@ class AuthController extends Controller
             'gender' => 'nullable|in:male,female,other',
         ]);
 
-        $user = Auth::user();
-
-        $profile = EmployeeProfile::create([
+        $profileData = [
             'user_id' => $user->id,
             'name' => $request->name,
             'address' => $request->address,
@@ -142,24 +158,9 @@ class AuthController extends Controller
             'experience' => $request->experience,
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
-        ]);
+        ];
 
-        if ($user->cv_path && (!$request->skills || !$request->experience)) {
-            $parser = new ResumeParserService();
-            $parsed = $parser->parseFromStorage($user->cv_path);
-
-            $updates = [];
-            if (!$request->skills && !empty($parsed['skills'])) {
-                $updates['skills'] = implode(', ', $parsed['skills']);
-            }
-            if (!$request->experience && !empty($parsed['experience'])) {
-                $updates['experience'] = $parsed['experience'];
-            }
-
-            if (!empty($updates)) {
-                $profile->update($updates);
-            }
-        }
+        $profile = EmployeeProfile::create($profileData);
 
         $user->name = $request->name;
         $user->save();
