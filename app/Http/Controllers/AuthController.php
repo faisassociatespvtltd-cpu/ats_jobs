@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use App\Services\ResumeParserService;
+use App\Mail\LoginOtpMail;
 
 class AuthController extends Controller
 {
@@ -338,22 +339,95 @@ class AuthController extends Controller
         ]);
 
         $credentials = $request->only('email', 'password');
-        $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
+        if (Auth::validate($credentials)) {
+            $user = User::where('email', $request->email)->first();
 
-            // Redirect based on user type
-            if (Auth::user()->isEmployee()) {
-                return redirect()->intended(route('employee.profile'));
-            } else {
-                return redirect()->intended(route('employer.profile'));
+            // Generate OTP
+            $otp = rand(100000, 999999);
+            
+            // Store in Database
+            $user->update([
+                'otp' => $otp,
+                'otp_expires_at' => now()->addMinutes(10)
+            ]);
+            
+            // Store user ID in session for verification page
+            session([
+                'login_user_id' => $user->id,
+                'login_remember' => $request->boolean('remember')
+            ]);
+
+            // Send Email
+            try {
+                Mail::to($user->email)->send(new LoginOtpMail($otp));
+            } catch (\Exception $e) {
+                \Log::error("Failed to send OTP email: " . $e->getMessage());
             }
+
+            return redirect()->route('otp.verify');
         }
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    /**
+     * Show OTP verify form.
+     */
+    public function showOtpVerify()
+    {
+        if (!session()->has('login_user_id')) {
+            return redirect()->route('login');
+        }
+
+        return view('auth.otp-verify');
+    }
+
+    /**
+     * Handle OTP verification.
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|numeric',
+        ]);
+
+        if (!session()->has('login_user_id')) {
+            return redirect()->route('login')->with('error', 'Session expired. Please login again.');
+        }
+
+        $userId = session('login_user_id');
+        $user = User::find($userId);
+
+        if (!$user) {
+            session()->forget(['login_user_id', 'login_remember']);
+            return redirect()->route('login')->with('error', 'User not found.');
+        }
+
+        if ($user->otp !== $request->otp || $user->otp_expires_at < now()) {
+             return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please try again.']);
+        }
+
+        $remember = session('login_remember', false);
+        Auth::login($user, $remember);
+        
+        // Clear OTP
+        $user->update([
+            'otp' => null,
+            'otp_expires_at' => null
+        ]);
+        
+        session()->forget(['login_user_id', 'login_remember']);
+        $request->session()->regenerate();
+
+        // Redirect based on user type
+        if (Auth::user()->isEmployee()) {
+            return redirect()->intended(route('employee.profile'));
+        } else {
+            return redirect()->intended(route('employer.profile'));
+        }
     }
 
     /**

@@ -25,6 +25,8 @@ class User extends Authenticatable
         'cv_path',
         'company_logo_path',
         'email_verification_token',
+        'otp',
+        'otp_expires_at',
     ];
 
     /**
@@ -47,6 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'otp_expires_at' => 'datetime',
         ];
     }
 
