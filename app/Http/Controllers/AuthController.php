@@ -166,7 +166,16 @@ class AuthController extends Controller
         $user->name = $request->name;
         $user->save();
 
-        return redirect()->route('employee.profile.complete');
+        $this->sendOtpEmail($user);
+        session([
+            'login_user_id' => $user->id,
+            'login_remember' => false,
+        ]);
+
+        return redirect()->route('otp.verify')->with('toast', [
+            'type' => 'info',
+            'message' => 'OTP sent to your email. Please verify to continue.',
+        ]);
     }
 
     /**
@@ -305,7 +314,16 @@ class AuthController extends Controller
         $user->name = $request->company_name;
         $user->save();
 
-        return redirect()->route('employer.profile.complete');
+        $this->sendOtpEmail($user);
+        session([
+            'login_user_id' => $user->id,
+            'login_remember' => false,
+        ]);
+
+        return redirect()->route('otp.verify')->with('toast', [
+            'type' => 'info',
+            'message' => 'OTP sent to your email. Please verify to continue.',
+        ]);
     }
 
     /**
@@ -343,29 +361,32 @@ class AuthController extends Controller
         if (Auth::validate($credentials)) {
             $user = User::where('email', $request->email)->first();
 
-            // Generate OTP
-            $otp = rand(100000, 999999);
-            
-            // Store in Database
-            $user->update([
-                'otp' => $otp,
-                'otp_expires_at' => now()->addMinutes(10)
-            ]);
-            
-            // Store user ID in session for verification page
-            session([
-                'login_user_id' => $user->id,
-                'login_remember' => $request->boolean('remember')
-            ]);
-
-            // Send Email
-            try {
-                Mail::to($user->email)->send(new LoginOtpMail($otp));
-            } catch (\Exception $e) {
-                \Log::error("Failed to send OTP email: " . $e->getMessage());
+            if (!$user->email_verified_at) {
+                $this->sendOtpEmail($user);
+                session([
+                    'login_user_id' => $user->id,
+                    'login_remember' => $request->boolean('remember'),
+                ]);
+                return redirect()->route('otp.verify')->withErrors([
+                    'email' => 'Please verify your email with the OTP sent to your inbox.',
+                ]);
             }
 
-            return redirect()->route('otp.verify');
+            if (Auth::attempt($credentials, $request->boolean('remember'))) {
+                $request->session()->regenerate();
+
+                if (Auth::user()->isEmployee()) {
+                    return redirect()->intended(route('employee.profile'))->with('toast', [
+                        'type' => 'success',
+                        'message' => 'Login successful! Welcome back.',
+                    ]);
+                }
+
+                return redirect()->intended(route('employer.profile'))->with('toast', [
+                    'type' => 'success',
+                    'message' => 'Login successful! Welcome back.',
+                ]);
+            }
         }
 
         return back()->withErrors([
@@ -406,7 +427,7 @@ class AuthController extends Controller
             return redirect()->route('login')->with('error', 'User not found.');
         }
 
-        if ($user->otp !== $request->otp || $user->otp_expires_at < now()) {
+        if (!$user->otp || !$user->otp_expires_at || $user->otp !== $request->otp || $user->otp_expires_at < now()) {
              return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please try again.']);
         }
 
@@ -416,7 +437,8 @@ class AuthController extends Controller
         // Clear OTP
         $user->update([
             'otp' => null,
-            'otp_expires_at' => null
+            'otp_expires_at' => null,
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ]);
         
         session()->forget(['login_user_id', 'login_remember']);
@@ -424,10 +446,16 @@ class AuthController extends Controller
 
         // Redirect based on user type
         if (Auth::user()->isEmployee()) {
-            return redirect()->intended(route('employee.profile'));
-        } else {
-            return redirect()->intended(route('employer.profile'));
+            return redirect()->intended(route('employee.profile'))->with('toast', [
+                'type' => 'success',
+                'message' => 'OTP verified successfully! Welcome.',
+            ]);
         }
+
+        return redirect()->intended(route('employer.profile'))->with('toast', [
+            'type' => 'success',
+            'message' => 'OTP verified successfully! Welcome.',
+        ]);
     }
 
     /**
@@ -476,6 +504,25 @@ class AuthController extends Controller
         Mail::send('emails.verify', ['url' => $verificationUrl], function ($message) use ($user) {
             $message->to($user->email);
             $message->subject('Verify Your Email Address');
+        });
+        */
+    }
+
+    private function sendOtpEmail(User $user): void
+    {
+        $otp = (string) random_int(100000, 999999);
+
+        $user->otp = $otp;
+        $user->otp_expires_at = now()->addMinutes(10);
+        $user->save();
+
+        \Log::info("OTP for {$user->email}: {$otp}");
+
+        // Uncomment to send actual emails (requires mail configuration)
+        /*
+        Mail::send('emails.otp', ['otp' => $otp], function ($message) use ($user) {
+            $message->to($user->email);
+            $message->subject('Your OTP Code');
         });
         */
     }

@@ -369,11 +369,42 @@
         .toast-info {
             background-color: #0078D4;
         }
+
+        /* Preloader */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e1dfdd;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
     
     @stack('styles')
 </head>
 <body>
+    <div id="preloader">
+        <div class="loader" aria-label="Loading"></div>
+    </div>
+
     <!-- Navigation Bar -->
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="navbar-brand">ATS Job Site</a>
@@ -450,9 +481,17 @@
         @yield('content')
     </div>
 
-    @if(session('toast'))
-        <div class="toast toast-{{ session('toast.type') }}">
-            {{ session('toast.message') }}
+    @php
+        $toast = session('toast');
+        if (!$toast && session('success')) {
+            $toast = ['type' => 'success', 'message' => session('success')];
+        } elseif (!$toast && session('error')) {
+            $toast = ['type' => 'error', 'message' => session('error')];
+        }
+    @endphp
+    @if($toast)
+        <div class="toast toast-{{ $toast['type'] }}">
+            {{ $toast['message'] }}
         </div>
         <script>
             setTimeout(() => {
@@ -467,6 +506,16 @@
     @endif
     
     @stack('scripts')
+    <script>
+        window.addEventListener('load', () => {
+            const preloader = document.getElementById('preloader');
+            if (preloader) {
+                preloader.style.opacity = '0';
+                preloader.style.transition = 'opacity 0.3s';
+                setTimeout(() => preloader.remove(), 300);
+            }
+        });
+    </script>
 </body>
 </html>
 
