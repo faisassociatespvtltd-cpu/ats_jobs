@@ -166,7 +166,29 @@ class AuthController extends Controller
         $user->name = $request->name;
         $user->save();
 
-        return redirect()->route('employee.profile.complete');
+        // --- OTP Logic Start ---
+        // Generate OTP
+        $otp = rand(100000, 999999);
+        
+        // Store in Database
+        $user->update([
+            'otp' => $otp,
+            'otp_expires_at' => now()->addMinutes(10)
+        ]);
+
+        // Send Email
+        try {
+            Mail::to($user->email)->send(new LoginOtpMail($otp));
+        } catch (\Exception $e) {
+            \Log::error("Failed to send OTP email: " . $e->getMessage());
+        }
+        
+        // Logout & Prepare for OTP Verify
+        Auth::logout();
+        session(['login_user_id' => $user->id]);
+
+        return redirect()->route('otp.verify');
+        // --- OTP Logic End ---
     }
 
     /**
@@ -305,7 +327,29 @@ class AuthController extends Controller
         $user->name = $request->company_name;
         $user->save();
 
-        return redirect()->route('employer.profile.complete');
+        // --- OTP Logic Start ---
+        // Generate OTP
+        $otp = rand(100000, 999999);
+        
+        // Store in Database
+        $user->update([
+            'otp' => $otp,
+            'otp_expires_at' => now()->addMinutes(10)
+        ]);
+
+        // Send Email
+        try {
+            Mail::to($user->email)->send(new LoginOtpMail($otp));
+        } catch (\Exception $e) {
+            \Log::error("Failed to send OTP email: " . $e->getMessage());
+        }
+
+        // Logout & Prepare for OTP Verify
+        Auth::logout();
+        session(['login_user_id' => $user->id]);
+
+        return redirect()->route('otp.verify');
+        // --- OTP Logic End ---
     }
 
     /**
@@ -422,12 +466,8 @@ class AuthController extends Controller
         session()->forget(['login_user_id', 'login_remember']);
         $request->session()->regenerate();
 
-        // Redirect based on user type
-        if (Auth::user()->isEmployee()) {
-            return redirect()->intended(route('employee.profile'));
-        } else {
-            return redirect()->intended(route('employer.profile'));
-        }
+        // Redirect to Dashboard
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
