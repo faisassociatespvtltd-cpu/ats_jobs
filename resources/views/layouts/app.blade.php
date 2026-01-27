@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'ATS Job Site') - {{ config('app.name', 'Laravel') }}</title>
     
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -314,34 +317,8 @@
         /* Pagination */
         .pagination-container {
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
             margin-top: 24px;
-        }
-        
-        .pagination {
-            display: flex;
-            gap: 4px;
-            list-style: none;
-        }
-        
-        .pagination li a,
-        .pagination li span {
-            padding: 6px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 2px;
-            text-decoration: none;
-            color: var(--text-primary);
-            display: block;
-        }
-        
-        .pagination li.active span {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        
-        .pagination li a:hover {
-            background-color: var(--hover-bg);
         }
 
         /* Toast */

@@ -59,10 +59,8 @@ class MembershipController extends Controller
             'referred_by' => 'nullable|exists:users,id',
         ]);
         
-        // Generate referral code if not provided
-        if (empty($validated['referral_code'])) {
-            $validated['referral_code'] = strtoupper(substr(md5(uniqid()), 0, 8));
-        }
+        // Generate referral code
+        $validated['referral_code'] = strtoupper(substr(md5(uniqid()), 0, 8));
         
         Membership::create($validated);
         

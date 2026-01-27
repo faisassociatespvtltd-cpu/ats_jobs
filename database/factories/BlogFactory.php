@@ -16,8 +16,18 @@ class BlogFactory extends Factory
      */
     public function definition(): array
     {
+        $title = fake()->sentence();
         return [
-            //
+            'author_id' => \App\Models\User::factory(),
+            'title' => $title,
+            'slug' => \Illuminate\Support\Str::slug($title),
+            'excerpt' => fake()->paragraph(),
+            'content' => fake()->paragraphs(5, true),
+            'status' => fake()->randomElement(['draft', 'published']),
+            'views' => fake()->numberBetween(0, 1000),
+            'likes' => fake()->numberBetween(0, 100),
+            'is_featured' => fake()->boolean(20),
+            'published_at' => fake()->dateTimeBetween('-1 year', 'now'),
         ];
     }
 }

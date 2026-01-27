@@ -17,7 +17,13 @@ class ResumeFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'applicant_id' => \App\Models\Applicant::factory(),
+            'parsing_status' => fake()->randomElement(['pending', 'completed']),
+            'parsed_content' => fake()->paragraphs(3, true),
+            'file_path' => 'resumes/' . fake()->uuid() . '.pdf',
+            'file_name' => fake()->word() . '.pdf',
+            'file_type' => 'application/pdf',
+            'file_size' => fake()->numberBetween(100, 5000),
         ];
     }
 }

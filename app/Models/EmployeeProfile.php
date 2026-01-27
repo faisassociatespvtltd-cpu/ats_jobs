@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmployeeProfile extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id',
         'name',
@@ -27,6 +30,12 @@ class EmployeeProfile extends Model
         'experience',
         'linkedin_url',
         'portfolio_url',
+        'cnic',
+        'expected_salary',
+        'location',
+        'city',
+        'state',
+        'country',
     ];
 
     protected $casts = [
