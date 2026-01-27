@@ -166,7 +166,6 @@ class AuthController extends Controller
         $user->name = $request->name;
         $user->save();
 
-<<<<<<< HEAD
         // --- OTP Logic Start ---
         // Generate OTP
         $otp = rand(100000, 999999);
@@ -190,7 +189,6 @@ class AuthController extends Controller
 
         return redirect()->route('otp.verify');
         // --- OTP Logic End ---
-=======
         $this->sendOtpEmail($user);
         session([
             'login_user_id' => $user->id,
@@ -201,7 +199,6 @@ class AuthController extends Controller
             'type' => 'info',
             'message' => 'OTP sent to your email. Please verify to continue.',
         ]);
->>>>>>> dd1538a4cef0190e6616c85e2baf39ddc4242a83
     }
 
     /**
@@ -340,7 +337,6 @@ class AuthController extends Controller
         $user->name = $request->company_name;
         $user->save();
 
-<<<<<<< HEAD
         // --- OTP Logic Start ---
         // Generate OTP
         $otp = rand(100000, 999999);
@@ -364,7 +360,6 @@ class AuthController extends Controller
 
         return redirect()->route('otp.verify');
         // --- OTP Logic End ---
-=======
         $this->sendOtpEmail($user);
         session([
             'login_user_id' => $user->id,
@@ -375,7 +370,6 @@ class AuthController extends Controller
             'type' => 'info',
             'message' => 'OTP sent to your email. Please verify to continue.',
         ]);
->>>>>>> dd1538a4cef0190e6616c85e2baf39ddc4242a83
     }
 
     /**
@@ -496,10 +490,8 @@ class AuthController extends Controller
         session()->forget(['login_user_id', 'login_remember']);
         $request->session()->regenerate();
 
-<<<<<<< HEAD
         // Redirect to Dashboard
         return redirect()->intended(route('dashboard'));
-=======
         // Redirect based on user type
         if (Auth::user()->isEmployee()) {
             return redirect()->intended(route('employee.profile'))->with('toast', [
@@ -512,7 +504,6 @@ class AuthController extends Controller
             'type' => 'success',
             'message' => 'OTP verified successfully! Welcome.',
         ]);
->>>>>>> dd1538a4cef0190e6616c85e2baf39ddc4242a83
     }
 
     /**
