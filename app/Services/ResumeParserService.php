@@ -74,15 +74,43 @@ class ResumeParserService
 
     protected function extractPdfText(string $path): string
     {
-        try {
-            $parser = new \Smalot\PdfParser\Parser();
-            $pdf = $parser->parseFile($path);
-            return $pdf->getText();
-        } catch (\Exception $e) {
-            $this->lastError = 'PDF parsing failed: ' . $e->getMessage();
-            Log::warning('PDF parsing failed.', ['path' => $path, 'error' => $e->getMessage()]);
+        if (class_exists(\Smalot\PdfParser\Parser::class)) {
+            try {
+                $parser = new \Smalot\PdfParser\Parser();
+                $pdf = $parser->parseFile($path);
+                $text = $pdf->getText();
+                if (is_string($text) && trim($text) !== '') {
+                    return $text;
+                }
+            } catch (\Exception $e) {
+                $this->lastError = 'PDF parsing failed: ' . $e->getMessage();
+                Log::warning('PDF parsing failed.', ['path' => $path, 'error' => $e->getMessage()]);
+                return '';
+            }
+        }
+
+        if (!function_exists('shell_exec')) {
+            $this->lastError = 'PDF parsing failed: shell_exec is disabled on this server.';
             return '';
         }
+
+        if (!$this->isPdfToTextAvailable()) {
+            $this->lastError = 'PDF parsing failed: pdftotext is not installed on the server.';
+            return '';
+        }
+
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $redirect = $isWindows ? '2>NUL' : '2>/dev/null';
+        $command = 'pdftotext "' . $path . '" - ' . $redirect;
+        $output = shell_exec($command);
+
+        if (is_string($output) && trim($output) !== '') {
+            return $output;
+        }
+
+        $this->lastError = 'PDF parsing failed: unable to read text from file.';
+        Log::warning('PDF parsing failed or pdftotext not available.', ['path' => $path]);
+        return '';
     }
 
     protected function extractDocxText(string $path): string
