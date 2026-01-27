@@ -48,15 +48,18 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'user_type' => 'employee',
-            'email_verification_token' => $verificationToken,
         ]);
 
-        // Send verification email
-        $this->sendVerificationEmail($user);
+        // Send OTP
+        $this->sendOtpEmail($user);
 
-        Auth::login($user);
+        // Prepare for OTP Verify
+        session(['login_user_id' => $user->id]);
 
-        return redirect()->route('employee.signup.step2');
+        return redirect()->route('otp.verify')->with('toast', [
+            'type' => 'info',
+            'message' => 'OTP sent to your email. Please verify to continue registration.',
+        ]);
     }
 
     /**
@@ -166,38 +169,9 @@ class AuthController extends Controller
         $user->name = $request->name;
         $user->save();
 
-        // --- OTP Logic Start ---
-        // Generate OTP
-        $otp = rand(100000, 999999);
-        
-        // Store in Database
-        $user->update([
-            'otp' => $otp,
-            'otp_expires_at' => now()->addMinutes(10)
-        ]);
-
-        // Send Email
-        try {
-            Mail::to($user->email)->send(new LoginOtpMail($otp));
-        } catch (\Exception $e) {
-            \Log::error("Failed to send OTP email: " . $e->getMessage());
-        }
-        
-        // Logout & Prepare for OTP Verify
-        Auth::logout();
-        session(['login_user_id' => $user->id]);
-
-        return redirect()->route('otp.verify');
-        // --- OTP Logic End ---
-        $this->sendOtpEmail($user);
-        session([
-            'login_user_id' => $user->id,
-            'login_remember' => false,
-        ]);
-
-        return redirect()->route('otp.verify')->with('toast', [
-            'type' => 'info',
-            'message' => 'OTP sent to your email. Please verify to continue.',
+        return redirect()->route('employee.profile.complete')->with('toast', [
+            'type' => 'success',
+            'message' => 'Profile completed successfully!',
         ]);
     }
 
@@ -237,15 +211,18 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'user_type' => 'employer',
-            'email_verification_token' => $verificationToken,
         ]);
 
-        // Send verification email
-        $this->sendVerificationEmail($user);
+        // Send OTP
+        $this->sendOtpEmail($user);
 
-        Auth::login($user);
+        // Prepare for OTP Verify
+        session(['login_user_id' => $user->id]);
 
-        return redirect()->route('employer.signup.step2');
+        return redirect()->route('otp.verify')->with('toast', [
+            'type' => 'info',
+            'message' => 'OTP sent to your email. Please verify to continue registration.',
+        ]);
     }
 
     /**
@@ -337,38 +314,9 @@ class AuthController extends Controller
         $user->name = $request->company_name;
         $user->save();
 
-        // --- OTP Logic Start ---
-        // Generate OTP
-        $otp = rand(100000, 999999);
-        
-        // Store in Database
-        $user->update([
-            'otp' => $otp,
-            'otp_expires_at' => now()->addMinutes(10)
-        ]);
-
-        // Send Email
-        try {
-            Mail::to($user->email)->send(new LoginOtpMail($otp));
-        } catch (\Exception $e) {
-            \Log::error("Failed to send OTP email: " . $e->getMessage());
-        }
-
-        // Logout & Prepare for OTP Verify
-        Auth::logout();
-        session(['login_user_id' => $user->id]);
-
-        return redirect()->route('otp.verify');
-        // --- OTP Logic End ---
-        $this->sendOtpEmail($user);
-        session([
-            'login_user_id' => $user->id,
-            'login_remember' => false,
-        ]);
-
-        return redirect()->route('otp.verify')->with('toast', [
-            'type' => 'info',
-            'message' => 'OTP sent to your email. Please verify to continue.',
+        return redirect()->route('employer.profile.complete')->with('toast', [
+            'type' => 'success',
+            'message' => 'Profile completed successfully!',
         ]);
     }
 
@@ -490,20 +438,34 @@ class AuthController extends Controller
         session()->forget(['login_user_id', 'login_remember']);
         $request->session()->regenerate();
 
-        // Redirect to Dashboard
-        return redirect()->intended(route('dashboard'));
-        // Redirect based on user type
-        if (Auth::user()->isEmployee()) {
-            return redirect()->intended(route('employee.profile'))->with('toast', [
+        // Check if registration is incomplete
+        if ($user->isEmployee()) {
+            if (!$user->cv_path) {
+                return redirect()->route('employee.signup.step2');
+            }
+            if (!$user->employeeProfile) {
+                return redirect()->route('employee.signup.step3');
+            }
+            return redirect()->intended(route('dashboard'))->with('toast', [
                 'type' => 'success',
                 'message' => 'OTP verified successfully! Welcome.',
             ]);
         }
 
-        return redirect()->intended(route('employer.profile'))->with('toast', [
-            'type' => 'success',
-            'message' => 'OTP verified successfully! Welcome.',
-        ]);
+        if ($user->isEmployer()) {
+            if (!$user->company_logo_path) {
+                return redirect()->route('employer.signup.step2');
+            }
+            if (!$user->employerProfile) {
+                return redirect()->route('employer.signup.step3');
+            }
+            return redirect()->intended(route('dashboard'))->with('toast', [
+                'type' => 'success',
+                'message' => 'OTP verified successfully! Welcome.',
+            ]);
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
@@ -564,14 +526,11 @@ class AuthController extends Controller
         $user->otp_expires_at = now()->addMinutes(10);
         $user->save();
 
-        \Log::info("OTP for {$user->email}: {$otp}");
-
-        // Uncomment to send actual emails (requires mail configuration)
-        /*
-        Mail::send('emails.otp', ['otp' => $otp], function ($message) use ($user) {
-            $message->to($user->email);
-            $message->subject('Your OTP Code');
-        });
-        */
+        try {
+            Mail::to($user->email)->send(new LoginOtpMail($otp));
+            \Log::info("OTP sent successfully to {$user->email}");
+        } catch (\Exception $e) {
+            \Log::error("Failed to send OTP email to {$user->email}: " . $e->getMessage());
+        }
     }
 }
