@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use App\Services\ResumeParserService;
+use App\Mail\LoginOtpMail;
 
 class AuthController extends Controller
 {
@@ -47,15 +48,18 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'user_type' => 'employee',
-            'email_verification_token' => $verificationToken,
         ]);
 
-        // Send verification email
-        $this->sendVerificationEmail($user);
+        // Send OTP
+        $this->sendOtpEmail($user);
 
-        Auth::login($user);
+        // Prepare for OTP Verify
+        session(['login_user_id' => $user->id]);
 
-        return redirect()->route('employee.signup.step2');
+        return redirect()->route('otp.verify')->with('toast', [
+            'type' => 'info',
+            'message' => 'OTP sent to your email. Please verify to continue registration.',
+        ]);
     }
 
     /**
@@ -99,7 +103,19 @@ class AuthController extends Controller
             return redirect()->route('employee.signup.step2');
         }
 
-        return view('auth.employee.signup-step3');
+        $user = Auth::user();
+        $parsedData = [];
+
+        if ($user->cv_path) {
+            try {
+                $parser = new ResumeParserService();
+                $parsedData = $parser->parseFromStorage($user->cv_path);
+            } catch (\Exception $e) {
+                \Log::error('Failed to parse resume during signup', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return view('auth.employee.signup-step3', compact('parsedData'));
     }
 
     /**
@@ -107,6 +123,12 @@ class AuthController extends Controller
      */
     public function employeeSignupStep3(Request $request)
     {
+        if (!Auth::check() || !Auth::user()->isEmployee()) {
+            return redirect()->route('employee.signup');
+        }
+
+        $user = Auth::user();
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
@@ -124,9 +146,7 @@ class AuthController extends Controller
             'gender' => 'nullable|in:male,female,other',
         ]);
 
-        $user = Auth::user();
-
-        $profile = EmployeeProfile::create([
+        $profileData = [
             'user_id' => $user->id,
             'name' => $request->name,
             'address' => $request->address,
@@ -142,29 +162,17 @@ class AuthController extends Controller
             'experience' => $request->experience,
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
-        ]);
+        ];
 
-        if ($user->cv_path && (!$request->skills || !$request->experience)) {
-            $parser = new ResumeParserService();
-            $parsed = $parser->parseFromStorage($user->cv_path);
-
-            $updates = [];
-            if (!$request->skills && !empty($parsed['skills'])) {
-                $updates['skills'] = implode(', ', $parsed['skills']);
-            }
-            if (!$request->experience && !empty($parsed['experience'])) {
-                $updates['experience'] = $parsed['experience'];
-            }
-
-            if (!empty($updates)) {
-                $profile->update($updates);
-            }
-        }
+        $profile = EmployeeProfile::create($profileData);
 
         $user->name = $request->name;
         $user->save();
 
-        return redirect()->route('employee.profile.complete');
+        return redirect()->route('employee.profile.complete')->with('toast', [
+            'type' => 'success',
+            'message' => 'Profile completed successfully!',
+        ]);
     }
 
     /**
@@ -203,15 +211,18 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'user_type' => 'employer',
-            'email_verification_token' => $verificationToken,
         ]);
 
-        // Send verification email
-        $this->sendVerificationEmail($user);
+        // Send OTP
+        $this->sendOtpEmail($user);
 
-        Auth::login($user);
+        // Prepare for OTP Verify
+        session(['login_user_id' => $user->id]);
 
-        return redirect()->route('employer.signup.step2');
+        return redirect()->route('otp.verify')->with('toast', [
+            'type' => 'info',
+            'message' => 'OTP sent to your email. Please verify to continue registration.',
+        ]);
     }
 
     /**
@@ -303,7 +314,10 @@ class AuthController extends Controller
         $user->name = $request->company_name;
         $user->save();
 
-        return redirect()->route('employer.profile.complete');
+        return redirect()->route('employer.profile.complete')->with('toast', [
+            'type' => 'success',
+            'message' => 'Profile completed successfully!',
+        ]);
     }
 
     /**
@@ -337,22 +351,121 @@ class AuthController extends Controller
         ]);
 
         $credentials = $request->only('email', 'password');
-        $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
+        if (Auth::validate($credentials)) {
+            $user = User::where('email', $request->email)->first();
 
-            // Redirect based on user type
-            if (Auth::user()->isEmployee()) {
-                return redirect()->intended(route('employee.profile'));
-            } else {
-                return redirect()->intended(route('employer.profile'));
+            if (!$user->email_verified_at) {
+                $this->sendOtpEmail($user);
+                session([
+                    'login_user_id' => $user->id,
+                    'login_remember' => $request->boolean('remember'),
+                ]);
+                return redirect()->route('otp.verify')->withErrors([
+                    'email' => 'Please verify your email with the OTP sent to your inbox.',
+                ]);
+            }
+
+            if (Auth::attempt($credentials, $request->boolean('remember'))) {
+                $request->session()->regenerate();
+
+                if (Auth::user()->isEmployee()) {
+                    return redirect()->intended(route('employee.profile'))->with('toast', [
+                        'type' => 'success',
+                        'message' => 'Login successful! Welcome back.',
+                    ]);
+                }
+
+                return redirect()->intended(route('employer.profile'))->with('toast', [
+                    'type' => 'success',
+                    'message' => 'Login successful! Welcome back.',
+                ]);
             }
         }
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    /**
+     * Show OTP verify form.
+     */
+    public function showOtpVerify()
+    {
+        if (!session()->has('login_user_id')) {
+            return redirect()->route('login');
+        }
+
+        return view('auth.otp-verify');
+    }
+
+    /**
+     * Handle OTP verification.
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|numeric',
+        ]);
+
+        if (!session()->has('login_user_id')) {
+            return redirect()->route('login')->with('error', 'Session expired. Please login again.');
+        }
+
+        $userId = session('login_user_id');
+        $user = User::find($userId);
+
+        if (!$user) {
+            session()->forget(['login_user_id', 'login_remember']);
+            return redirect()->route('login')->with('error', 'User not found.');
+        }
+
+        if (!$user->otp || !$user->otp_expires_at || $user->otp !== $request->otp || $user->otp_expires_at < now()) {
+             return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please try again.']);
+        }
+
+        $remember = session('login_remember', false);
+        Auth::login($user, $remember);
+        
+        // Clear OTP
+        $user->update([
+            'otp' => null,
+            'otp_expires_at' => null,
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ]);
+        
+        session()->forget(['login_user_id', 'login_remember']);
+        $request->session()->regenerate();
+
+        // Check if registration is incomplete
+        if ($user->isEmployee()) {
+            if (!$user->cv_path) {
+                return redirect()->route('employee.signup.step2');
+            }
+            if (!$user->employeeProfile) {
+                return redirect()->route('employee.signup.step3');
+            }
+            return redirect()->intended(route('dashboard'))->with('toast', [
+                'type' => 'success',
+                'message' => 'OTP verified successfully! Welcome.',
+            ]);
+        }
+
+        if ($user->isEmployer()) {
+            if (!$user->company_logo_path) {
+                return redirect()->route('employer.signup.step2');
+            }
+            if (!$user->employerProfile) {
+                return redirect()->route('employer.signup.step3');
+            }
+            return redirect()->intended(route('dashboard'))->with('toast', [
+                'type' => 'success',
+                'message' => 'OTP verified successfully! Welcome.',
+            ]);
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
@@ -403,5 +516,21 @@ class AuthController extends Controller
             $message->subject('Verify Your Email Address');
         });
         */
+    }
+
+    private function sendOtpEmail(User $user): void
+    {
+        $otp = (string) random_int(100000, 999999);
+
+        $user->otp = $otp;
+        $user->otp_expires_at = now()->addMinutes(10);
+        $user->save();
+
+        try {
+            Mail::to($user->email)->send(new LoginOtpMail($otp));
+            \Log::info("OTP sent successfully to {$user->email}");
+        } catch (\Exception $e) {
+            \Log::error("Failed to send OTP email to {$user->email}: " . $e->getMessage());
+        }
     }
 }

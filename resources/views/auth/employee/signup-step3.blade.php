@@ -234,7 +234,7 @@
             
             <div class="form-group">
                 <label for="name">Full Name <span class="required">*</span></label>
-                <input type="text" id="name" name="name" class="form-control" value="{{ old('name') }}" required>
+                <input type="text" id="name" name="name" class="form-control" value="{{ old('name', $parsedData['name'] ?? '') }}" required>
                 @error('name')
                     <div class="error-message">{{ $message }}</div>
                 @enderror
@@ -242,7 +242,7 @@
             
             <div class="form-group">
                 <label for="address">Address</label>
-                <textarea id="address" name="address" class="form-control">{{ old('address') }}</textarea>
+                <textarea id="address" name="address" class="form-control">{{ old('address', $parsedData['address'] ?? '') }}</textarea>
                 @error('address')
                     <div class="error-message">{{ $message }}</div>
                 @enderror
@@ -251,7 +251,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="phone_number">Phone Number</label>
-                    <input type="tel" id="phone_number" name="phone_number" class="form-control" value="{{ old('phone_number') }}">
+                    <input type="tel" id="phone_number" name="phone_number" class="form-control" value="{{ old('phone_number', $parsedData['phone'] ?? '') }}">
                     @error('phone_number')
                         <div class="error-message">{{ $message }}</div>
                     @enderror
@@ -259,7 +259,7 @@
                 
                 <div class="form-group">
                     <label for="whatsapp_number">WhatsApp Number</label>
-                    <input type="tel" id="whatsapp_number" name="whatsapp_number" class="form-control" value="{{ old('whatsapp_number') }}">
+                    <input type="tel" id="whatsapp_number" name="whatsapp_number" class="form-control" value="{{ old('whatsapp_number', $parsedData['phone'] ?? '') }}">
                     @error('whatsapp_number')
                         <div class="error-message">{{ $message }}</div>
                     @enderror
@@ -277,7 +277,7 @@
                 
                 <div class="form-group">
                     <label for="city">City <span class="required">*</span></label>
-                    <input type="text" id="city" name="city" class="form-control location-autocomplete" value="{{ old('city') }}" placeholder="Start typing city name..." autocomplete="off">
+                    <input type="text" id="city" name="city" class="form-control location-autocomplete" value="{{ old('city', $parsedData['address'] ?? '') }}" placeholder="Start typing city name..." autocomplete="off">
                     <input type="hidden" id="location" name="location">
                     <div id="location-suggestions" class="location-suggestions" style="display: none;"></div>
                     @error('city')
@@ -314,7 +314,7 @@
 
             <div class="form-group">
                 <label for="skills">Skills</label>
-                <textarea id="skills" name="skills" class="form-control" rows="3" placeholder="e.g., Laravel, MySQL, REST APIs">{{ old('skills') }}</textarea>
+                <textarea id="skills" name="skills" class="form-control" rows="3" placeholder="e.g., Laravel, MySQL, REST APIs">{{ old('skills', isset($parsedData['skills']) ? implode(', ', $parsedData['skills']) : '') }}</textarea>
                 @error('skills')
                     <div class="error-message">{{ $message }}</div>
                 @enderror
@@ -322,7 +322,7 @@
 
             <div class="form-group">
                 <label for="experience">Experience</label>
-                <textarea id="experience" name="experience" class="form-control" rows="3" placeholder="e.g., 2 years in web development">{{ old('experience') }}</textarea>
+                <textarea id="experience" name="experience" class="form-control" rows="3" placeholder="e.g., 2 years in web development">{{ old('experience', isset($parsedData['experience_items']) ? implode("\n", $parsedData['experience_items']) : '') }}</textarea>
                 @error('experience')
                     <div class="error-message">{{ $message }}</div>
                 @enderror

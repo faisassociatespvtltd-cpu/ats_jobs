@@ -20,89 +20,88 @@ class ATSDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create Users
-        $users = User::factory(10)->create();
+        // Create Users with Profiles
+        $users = User::factory(20)->create()->each(function ($user) {
+            if ($user->user_type === 'employee') {
+                \App\Models\EmployeeProfile::factory()->create(['user_id' => $user->id]);
+            } else {
+                \App\Models\EmployerProfile::factory()->create(['user_id' => $user->id]);
+            }
+        });
+
         $admin = User::firstOrCreate(
             ['email' => 'admin@ats.com'],
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
+                'user_type' => 'employer',
             ]
         );
+        \App\Models\EmployerProfile::firstOrCreate(['user_id' => $admin->id], [
+            'company_name' => 'ATS Admin',
+            'company_address' => 'Main Office',
+        ]);
+
+        $employers = $users->where('user_type', 'employer');
+        $employees = $users->where('user_type', 'employee');
 
         // Create Job Postings
-        $jobPostings = JobPosting::factory(50)->create([
-            'posted_by' => fn() => $users->random()->id,
-            'status' => fn() => collect(['draft', 'active', 'active', 'active', 'closed'])->random(),
+        $jobPostings = JobPosting::factory(30)->create([
+            'posted_by' => fn() => $employers->count() > 0 ? $employers->random()->id : $admin->id,
         ]);
 
         // Create Applicants
         $applicants = collect();
-        foreach ($jobPostings->take(30) as $job) {
-            $appCount = rand(2, 8);
+        foreach ($jobPostings as $job) {
+            $appCount = rand(3, 10);
             for ($i = 0; $i < $appCount; $i++) {
+                $applicantUser = $employees->count() > 0 ? $employees->random() : null;
                 $applicants->push(Applicant::factory()->create([
                     'job_posting_id' => $job->id,
-                    'status' => collect(['pending', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'hired', 'rejected'])->random(),
+                    'user_id' => $applicantUser ? $applicantUser->id : null,
+                    'email' => $applicantUser ? $applicantUser->email : fake()->safeEmail(),
                 ]));
             }
         }
 
         // Create Interviews
-        foreach ($applicants->where('status', '!=', 'rejected')->take(20) as $applicant) {
+        foreach ($applicants->take(30) as $applicant) {
             Interview::factory()->create([
                 'applicant_id' => $applicant->id,
                 'job_posting_id' => $applicant->job_posting_id,
-                'interviewer_id' => $users->random()->id,
-                'status' => collect(['scheduled', 'completed', 'completed'])->random(),
+                'interviewer_id' => $employers->count() > 0 ? $employers->random()->id : $admin->id,
             ]);
         }
 
         // Create Resumes
-        foreach ($applicants->take(25) as $applicant) {
+        foreach ($applicants as $applicant) {
             Resume::factory()->create([
                 'applicant_id' => $applicant->id,
-                'parsing_status' => collect(['pending', 'completed', 'completed', 'completed'])->random(),
             ]);
         }
 
         // Create Labour Laws
-        foreach (['law', 'article', 'book', 'qa'] as $type) {
-            for ($i = 0; $i < 15; $i++) {
-                LabourLaw::factory()->create([
-                    'type' => $type,
-                    'created_by' => $users->random()->id,
-                    'country' => collect(['USA', 'UK', 'Canada', 'Australia', 'Germany'])->random(),
-                ]);
-            }
-        }
+        LabourLaw::factory(20)->create([
+            'created_by' => $admin->id,
+        ]);
 
         // Create Scraped Jobs
-        foreach (['whatsapp', 'linkedin', 'facebook', 'other'] as $source) {
-            for ($i = 0; $i < 20; $i++) {
-                ScrapedJob::factory()->create([
-                    'source' => $source,
-                    'status' => collect(['pending', 'reviewed', 'imported', 'rejected'])->random(),
-                ]);
-            }
-        }
+        ScrapedJob::factory(50)->create();
 
         // Create Blogs
-        Blog::factory(25)->create([
-            'author_id' => fn() => $users->random()->id,
-            'status' => fn() => collect(['draft', 'published', 'published'])->random(),
+        Blog::factory(10)->create([
+            'author_id' => $admin->id,
         ]);
 
         // Create Forums
-        $forums = Forum::factory(30)->create([
+        $parentForums = Forum::factory(15)->create([
             'user_id' => fn() => $users->random()->id,
             'parent_id' => null,
-            'category' => fn() => collect(['General', 'Jobs', 'Legal', 'Community'])->random(),
         ]);
 
         // Create Forum Replies
-        foreach ($forums->take(20) as $forum) {
+        foreach ($parentForums as $forum) {
             Forum::factory(rand(2, 5))->create([
                 'user_id' => fn() => $users->random()->id,
                 'parent_id' => $forum->id,
@@ -113,8 +112,6 @@ class ATSDatabaseSeeder extends Seeder
         foreach ($users as $user) {
             Membership::factory()->create([
                 'user_id' => $user->id,
-                'membership_type' => collect(['basic', 'premium', 'enterprise'])->random(),
-                'status' => collect(['active', 'active', 'expired'])->random(),
             ]);
         }
     }

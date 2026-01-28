@@ -26,6 +26,8 @@ Route::get('/', function () {
 Route::get('/welcome', [AuthController::class, 'welcome'])->name('welcome');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/otp-verify', [AuthController::class, 'showOtpVerify'])->name('otp.verify');
+Route::post('/otp-verify', [AuthController::class, 'verifyOtp']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/email/verify/{token}', [AuthController::class, 'verifyEmail'])->name('email.verify');
 

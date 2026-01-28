@@ -17,7 +17,13 @@ class ApplicantFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'email' => fake()->safeEmail(),
+            'phone' => fake()->phoneNumber(),
+            'cover_letter' => fake()->paragraph(),
+            'status' => fake()->randomElement(['pending', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'hired', 'rejected']),
+            'application_date' => fake()->dateTimeBetween('-1 month', 'now'),
         ];
     }
 }

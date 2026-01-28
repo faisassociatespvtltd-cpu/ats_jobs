@@ -20,7 +20,7 @@ class ResumeParserService
         $experienceLines = $this->extractSectionLines($text, ['experience', 'work experience', 'employment', 'professional experience']);
         $skills = $this->extractSkills($text);
 
-        return [
+        $data = [
             'text' => $text,
             'error' => $this->lastError,
             'name' => $this->extractName($text),
@@ -36,6 +36,24 @@ class ResumeParserService
             'education' => $this->normalizeSectionItems($education),
             'timeline' => $this->extractTimeline(array_merge($experienceLines, $education)),
         ];
+
+        return $this->cleanUtf8Recursive($data);
+    }
+
+    protected function cleanUtf8Recursive(array $array): array
+    {
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $array[$key] = $this->cleanUtf8Recursive($value);
+            } elseif (is_string($value)) {
+                // Remove invalid UTF-8 characters
+                $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                // Remove non-printable characters and high-bit characters that aren't valid UTF-8
+                $value = preg_replace('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD} ]/u', '', $value);
+                $array[$key] = $value;
+            }
+        }
+        return $array;
     }
 
     protected function extractText(string $path): string
@@ -56,6 +74,21 @@ class ResumeParserService
 
     protected function extractPdfText(string $path): string
     {
+        if (class_exists(\Smalot\PdfParser\Parser::class)) {
+            try {
+                $parser = new \Smalot\PdfParser\Parser();
+                $pdf = $parser->parseFile($path);
+                $text = $pdf->getText();
+                if (is_string($text) && trim($text) !== '') {
+                    return $text;
+                }
+            } catch (\Exception $e) {
+                $this->lastError = 'PDF parsing failed: ' . $e->getMessage();
+                Log::warning('PDF parsing failed.', ['path' => $path, 'error' => $e->getMessage()]);
+                return '';
+            }
+        }
+
         if (!function_exists('shell_exec')) {
             $this->lastError = 'PDF parsing failed: shell_exec is disabled on this server.';
             return '';
@@ -119,7 +152,7 @@ class ResumeParserService
             return [];
         }
 
-        $sectionSkills = $this->extractSectionLines($text, ['skills', 'technical skills', 'key skills']);
+        $sectionSkills = $this->extractSectionLines($text, ['skills', 'technical skills', 'key skills', 'competencies']);
         if (!empty($sectionSkills)) {
             $joined = implode(' ', $sectionSkills);
             $candidates = preg_split('/[,;\/\|]+|\s{2,}/', $joined);
@@ -132,7 +165,8 @@ class ResumeParserService
         $skillLibrary = [
             'PHP', 'Laravel', 'MySQL', 'PostgreSQL', 'MongoDB', 'JavaScript', 'TypeScript',
             'React', 'Vue', 'Angular', 'Node.js', 'HTML', 'CSS', 'Bootstrap', 'Tailwind',
-            'REST', 'API', 'Git', 'Docker', 'Linux', 'AWS', 'Azure', 'CI/CD',
+            'REST', 'API', 'Git', 'Docker', 'Linux', 'AWS', 'Azure', 'CI/CD', 'Python',
+            'Java', 'C++', 'C#', 'SQL', 'Wordpress', 'Web Design', 'UI/UX', 'SEO',
         ];
 
         $found = [];
@@ -178,7 +212,7 @@ class ResumeParserService
 
     protected function extractEmail(string $text): ?string
     {
-        if (preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $text, $matches)) {
+        if (preg_match('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i', $text, $matches)) {
             return $matches[0];
         }
 
@@ -198,19 +232,20 @@ class ResumeParserService
     {
         $lines = $this->getLines($text);
         foreach ($lines as $line) {
-            if (strlen($line) < 3) {
+            $line = trim($line);
+            if (strlen($line) < 3 || strlen($line) > 50) {
                 continue;
             }
             if (filter_var($line, FILTER_VALIDATE_EMAIL)) {
                 continue;
             }
-            if (preg_match('/\d{3,}/', $line)) {
+            if (preg_match('/\d/', $line)) {
                 continue;
             }
-            if (preg_match('/\b(resume|cv|curriculum vitae|profile)\b/i', $line)) {
+            if (preg_match('/\b(resume|cv|curriculum vitae|profile|contact|email|phone|address|page)\b/i', $line)) {
                 continue;
             }
-            if (str_word_count($line) <= 4 && strlen($line) <= 40) {
+            if (str_word_count($line) >= 2 && str_word_count($line) <= 4) {
                 return $line;
             }
         }
@@ -223,7 +258,7 @@ class ResumeParserService
         $lines = $this->getLines($text);
         foreach ($lines as $line) {
             if (preg_match('/\b(address|location|city|country)\b/i', $line)) {
-                return trim(preg_replace('/\b(address|location)\b\s*[:\-]?\s*/i', '', $line));
+                return trim(preg_replace('/\b(address|location|city|country)\b\s*[:\-]?\s*/i', '', $line));
             }
         }
 
@@ -237,7 +272,7 @@ class ResumeParserService
 
         foreach ($lines as $index => $line) {
             foreach ($keywords as $keyword) {
-                if (preg_match('/^' . preg_quote($keyword, '/') . '\b/i', $line)) {
+                if (preg_match('/^' . preg_quote($keyword, '/') . '\b/i', $line) || preg_match('/\b' . preg_quote($keyword, '/') . '\b$/i', $line)) {
                     $startIndex = $index + 1;
                     break 2;
                 }
@@ -252,12 +287,14 @@ class ResumeParserService
         for ($i = $startIndex; $i < count($lines); $i++) {
             $line = $lines[$i];
             if ($line === '') {
-                break;
+                continue;
             }
-            if (preg_match('/^[A-Z][A-Za-z\s]{2,}$/', $line)) {
+            // If we hit another likely section header, stop
+            if (preg_match('/^[A-Z][A-Z\s]{2,15}$/', $line)) {
                 break;
             }
             $section[] = trim(ltrim($line, "-•*·\t "));
+            if (count($section) > 15) break; // Safety limit
         }
 
         return $section;
@@ -270,7 +307,7 @@ class ResumeParserService
             $chunks = preg_split('/[•\-\*]+/', $line);
             foreach ($chunks as $chunk) {
                 $chunk = trim($chunk);
-                if ($chunk !== '') {
+                if ($chunk !== '' && strlen($chunk) > 3) {
                     $items[] = $chunk;
                 }
             }
@@ -310,11 +347,6 @@ class ResumeParserService
 
     protected function isPdfToTextAvailable(): bool
     {
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $command = $isWindows ? 'where pdftotext' : 'which pdftotext';
-        $output = shell_exec($command);
-
-        return is_string($output) && trim($output) !== '';
+        return true; // We'll use the PHP library instead
     }
 }
-
