@@ -314,9 +314,9 @@ class AuthController extends Controller
         $user->name = $request->company_name;
         $user->save();
 
-        return redirect()->route('employer.profile.complete')->with('toast', [
+        return redirect()->route('dashboard')->with('toast', [
             'type' => 'success',
-            'message' => 'Profile completed successfully!',
+            'message' => 'Profile completed successfully! Welcome to your dashboard.',
         ]);
     }
 
@@ -376,7 +376,7 @@ class AuthController extends Controller
                     ]);
                 }
 
-                return redirect()->intended(route('employer.profile'))->with('toast', [
+                return redirect()->intended(route('dashboard'))->with('toast', [
                     'type' => 'success',
                     'message' => 'Login successful! Welcome back.',
                 ]);

@@ -418,11 +418,9 @@
                 <ul class="submenu">
                     @auth
                         @if(auth()->user()->isEmployer())
-                            <li><a href="{{ route('job-postings.index') }}">Job Postings</a></li>
-                            <li><a href="{{ route('employer.jobs') }}">Employer Jobs</a></li>
+                            <li><a href="{{ route('job-postings.create') }}">Job Posting</a></li>
+                            <li><a href="{{ route('employer.jobs') }}">Employer's Jobs</a></li>
                             <li><a href="{{ route('applicants.index') }}">Applicants</a></li>
-                            <li><a href="{{ route('interviews.index') }}">Interviews</a></li>
-                            <li><a href="{{ route('resumes.index') }}">Resume Parsing</a></li>
                         @else
                             <li><a href="{{ route('jobs.index') }}">Job Board</a></li>
                         @endif
