@@ -27,6 +27,7 @@ class User extends Authenticatable
         'email_verification_token',
         'otp',
         'otp_expires_at',
+        'is_blocked',
     ];
 
     /**
@@ -83,5 +84,13 @@ class User extends Authenticatable
     public function isEmployer()
     {
         return $this->user_type === 'employer';
+    }
+
+    /**
+     * Check if user is a super admin.
+     */
+    public function isSuperAdmin()
+    {
+        return $this->user_type === 'superadmin';
     }
 }

@@ -462,6 +462,13 @@
                     <li><a href="{{ route('memberships.referrals') }}">Referral Invites</a></li>
                 </ul>
             </li>
+            @auth
+                @if(auth()->user()->isSuperAdmin())
+                <li>
+                    <a href="{{ route('superadmin.dashboard') }}" style="color: var(--warning-color); font-weight: bold;">Super Admin</a>
+                </li>
+                @endif
+            @endauth
         </ul>
         <div class="navbar-actions">
             @auth

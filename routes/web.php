@@ -15,6 +15,7 @@ use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\JobApplicationController;
+use App\Http\Controllers\SuperAdminController;
 
 // Welcome and Authentication Routes
 Route::get('/', function () {
@@ -106,4 +107,20 @@ Route::middleware('auth')->group(function () {
     // Memberships
     Route::resource('memberships', MembershipController::class);
     Route::get('memberships/referrals/list', [MembershipController::class, 'referrals'])->name('memberships.referrals');
+});
+
+// Super Admin Routes
+Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/users', [SuperAdminController::class, 'users'])->name('users');
+    Route::post('/users/{id}/block', [SuperAdminController::class, 'blockUser'])->name('users.block');
+    Route::post('/users/{id}/activate', [SuperAdminController::class, 'activateUser'])->name('users.activate');
+
+    // Scraped Jobs Management
+    Route::get('/scraped-jobs', [SuperAdminController::class, 'scrapedJobs'])->name('scraped-jobs');
+    Route::get('/scraped-jobs/scrape', [SuperAdminController::class, 'scrapeFromSource'])->name('scraped-jobs.scrape');
+    Route::post('/scraped-jobs/scrape', [SuperAdminController::class, 'executeScrape'])->name('scraped-jobs.execute');
+    Route::post('/scraped-jobs/{id}/parse', [SuperAdminController::class, 'parseJob'])->name('scraped-jobs.parse');
+    Route::post('/scraped-jobs/{id}/approve', [SuperAdminController::class, 'approveJob'])->name('scraped-jobs.approve');
+    Route::post('/scraped-jobs/{id}/reject', [SuperAdminController::class, 'rejectJob'])->name('scraped-jobs.reject');
 });

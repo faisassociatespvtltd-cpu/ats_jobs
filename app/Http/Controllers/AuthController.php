@@ -355,16 +355,7 @@ class AuthController extends Controller
         if (Auth::validate($credentials)) {
             $user = User::where('email', $request->email)->first();
 
-            if (!$user->email_verified_at && $user->isEmployer()) {
-                $this->sendOtpEmail($user);
-                session([
-                    'login_user_id' => $user->id,
-                    'login_remember' => $request->boolean('remember'),
-                ]);
-                return redirect()->route('otp.verify')->withErrors([
-                    'email' => 'Please verify your email with the OTP sent to your inbox.',
-                ]);
-            }
+
 
             if (Auth::attempt($credentials, $request->boolean('remember'))) {
                 $request->session()->regenerate();

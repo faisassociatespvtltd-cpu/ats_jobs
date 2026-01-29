@@ -12,13 +12,26 @@ class ScrapedJob extends Model
     use SoftDeletes, HasFactory;
 
     protected $fillable = [
-        'source', 'title', 'description', 'company_name', 'location',
-        'salary', 'job_type', 'source_url', 'raw_data', 'status',
-        'is_imported', 'imported_to_job_id', 'scraped_at'
+        'source',
+        'title',
+        'description',
+        'company_name',
+        'location',
+        'salary',
+        'job_type',
+        'source_url',
+        'raw_data',
+        'status',
+        'is_imported',
+        'imported_to_job_id',
+        'scraped_at',
+        'parsed_data',
+        'user_id'
     ];
 
     protected $casts = [
         'raw_data' => 'array',
+        'parsed_data' => 'array',
         'scraped_at' => 'datetime',
         'is_imported' => 'boolean',
     ];
@@ -26,5 +39,10 @@ class ScrapedJob extends Model
     public function importedToJob(): BelongsTo
     {
         return $this->belongsTo(JobPosting::class, 'imported_to_job_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
