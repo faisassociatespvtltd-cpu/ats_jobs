@@ -16,9 +16,22 @@ class ResumeParserService
         $this->lastError = null;
         $text = $this->extractText($fullPath);
 
-        $education = $this->extractSectionLines($text, ['education', 'academic background', 'academics']);
-        $experienceLines = $this->extractSectionLines($text, ['experience', 'work experience', 'employment', 'professional experience']);
+        \Log::info('Resume Parsing Started', ['path' => $relativePath, 'text_length' => strlen($text)]);
+        if (strlen($text) < 100) {
+            \Log::warning('Extracted text is very short', ['text' => substr($text, 0, 100)]);
+        }
+
+        $profilePhoto = $this->extractProfilePhoto($fullPath);
+
+        $education = $this->extractSectionLines($text, ['education', 'academic background', 'academics', 'qualification']);
+        $experienceLines = $this->extractSectionLines($text, ['experience', 'work experience', 'employment', 'professional experience', 'professional background']);
         $skills = $this->extractSkills($text);
+
+        \Log::info('Sections Found', [
+            'edu_count' => count($education),
+            'exp_count' => count($experienceLines),
+            'skills_count' => count($skills)
+        ]);
 
         $data = [
             'text' => $text,
@@ -34,7 +47,9 @@ class ResumeParserService
             'experience_summary' => $this->extractExperienceSummary($text),
             'experience_items' => $this->normalizeSectionItems($experienceLines),
             'education' => $this->normalizeSectionItems($education),
+            'projects' => $this->normalizeSectionItems($this->extractSectionLines($text, ['projects', 'key projects'])),
             'timeline' => $this->extractTimeline(array_merge($experienceLines, $education)),
+            'profile_photo' => $profilePhoto,
         ];
 
         return $this->cleanUtf8Recursive($data);
@@ -79,37 +94,80 @@ class ResumeParserService
                 $parser = new \Smalot\PdfParser\Parser();
                 $pdf = $parser->parseFile($path);
                 $text = $pdf->getText();
+
+                // If direct getText() is empty, try page by page
+                if (trim($text) === '') {
+                    $pages = $pdf->getPages();
+                    foreach ($pages as $page) {
+                        $text .= $page->getText() . "\n";
+                    }
+                }
+
                 if (is_string($text) && trim($text) !== '') {
                     return $text;
                 }
             } catch (\Exception $e) {
-                $this->lastError = 'PDF parsing failed: ' . $e->getMessage();
-                Log::warning('PDF parsing failed.', ['path' => $path, 'error' => $e->getMessage()]);
-                return '';
+                Log::warning('Smalot PDF parsing partial failure.', ['path' => $path, 'error' => $e->getMessage()]);
+                // Continue to fallback
             }
         }
 
-        if (!function_exists('shell_exec')) {
-            $this->lastError = 'PDF parsing failed: shell_exec is disabled on this server.';
-            return '';
+        // New fallback: Raw string scraping (useful for unusual/vectorized PDFs if strings are present)
+        $rawText = $this->rawScrapePdf($path);
+        if (strlen($rawText) > 200) {
+            return $rawText;
         }
 
-        if (!$this->isPdfToTextAvailable()) {
-            $this->lastError = 'PDF parsing failed: pdftotext is not installed on the server.';
-            return '';
-        }
+        if (function_exists('shell_exec') && $this->isPdfToTextAvailable()) {
+            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+            $redirect = $isWindows ? '2>NUL' : '2>/dev/null';
+            $command = 'pdftotext "' . $path . '" - ' . $redirect;
+            $output = shell_exec($command);
 
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $redirect = $isWindows ? '2>NUL' : '2>/dev/null';
-        $command = 'pdftotext "' . $path . '" - ' . $redirect;
-        $output = shell_exec($command);
-
-        if (is_string($output) && trim($output) !== '') {
-            return $output;
+            if (is_string($output) && trim($output) !== '') {
+                return $output;
+            }
         }
 
         $this->lastError = 'PDF parsing failed: unable to read text from file.';
-        Log::warning('PDF parsing failed or pdftotext not available.', ['path' => $path]);
+        return '';
+    }
+
+    protected function rawScrapePdf(string $path): string
+    {
+        if (!file_exists($path))
+            return '';
+
+        $content = file_get_contents($path);
+        // Extract strings between ( and ) or < and >
+        if (preg_match_all('/\((.*?)\)|<([0-9A-Fa-f]+)>/', $content, $matches)) {
+            $parts = [];
+            foreach ($matches[0] as $i => $full) {
+                if (!empty($matches[1][$i])) {
+                    $parts[] = $matches[1][$i];
+                } elseif (!empty($matches[2][$i])) {
+                    // Try to decode hex if it's short
+                    $hex = $matches[2][$i];
+                    if (strlen($hex) % 2 === 0) {
+                        $decoded = @hex2bin($hex);
+                        if ($decoded)
+                            $parts[] = $decoded;
+                    }
+                }
+            }
+
+            $text = implode(' ', $parts);
+
+            // Heuristic: If there are too many spaces (like character by character), join them
+            if (preg_match_all('/\b\w\s\w\s\w\b/', $text)) {
+                $text = preg_replace('/(\b\w)\s(?=\w\b)/', '$1', $text);
+            }
+
+            // Filter non-printable ASCII and clean common PDF escaped characters
+            $text = preg_replace('/[^\x20-\x7E\s]/', '', $text);
+            $text = str_replace(['\\(', '\\)', '\\n', '\\r', '\\t'], ['(', ')', "\n", "\r", "\t"], $text);
+            return $text;
+        }
         return '';
     }
 
@@ -152,10 +210,11 @@ class ResumeParserService
             return [];
         }
 
-        $sectionSkills = $this->extractSectionLines($text, ['skills', 'technical skills', 'key skills', 'competencies']);
+        $sectionSkills = $this->extractSectionLines($text, ['skills', 'technical skills', 'key skills', 'competencies', 'expertise', 'technologies', 'strengths', 'professional skills']);
         if (!empty($sectionSkills)) {
             $joined = implode(' ', $sectionSkills);
-            $candidates = preg_split('/[,;\/\|]+|\s{2,}/', $joined);
+            // Split by various delimiters or multiple spaces
+            $candidates = preg_split('/[,;\/\|•\-\*]+|\s{2,}/', $joined);
             $cleaned = array_filter(array_map('trim', $candidates));
             if (!empty($cleaned)) {
                 return array_values(array_unique($cleaned));
@@ -163,10 +222,38 @@ class ResumeParserService
         }
 
         $skillLibrary = [
-            'PHP', 'Laravel', 'MySQL', 'PostgreSQL', 'MongoDB', 'JavaScript', 'TypeScript',
-            'React', 'Vue', 'Angular', 'Node.js', 'HTML', 'CSS', 'Bootstrap', 'Tailwind',
-            'REST', 'API', 'Git', 'Docker', 'Linux', 'AWS', 'Azure', 'CI/CD', 'Python',
-            'Java', 'C++', 'C#', 'SQL', 'Wordpress', 'Web Design', 'UI/UX', 'SEO',
+            'PHP',
+            'Laravel',
+            'MySQL',
+            'PostgreSQL',
+            'MongoDB',
+            'JavaScript',
+            'TypeScript',
+            'React',
+            'Vue',
+            'Angular',
+            'Node.js',
+            'HTML',
+            'CSS',
+            'Bootstrap',
+            'Tailwind',
+            'REST',
+            'API',
+            'Git',
+            'Docker',
+            'Linux',
+            'AWS',
+            'Azure',
+            'CI/CD',
+            'Python',
+            'Java',
+            'C++',
+            'C#',
+            'SQL',
+            'Wordpress',
+            'Web Design',
+            'UI/UX',
+            'SEO',
         ];
 
         $found = [];
@@ -231,23 +318,34 @@ class ResumeParserService
     protected function extractName(string $text): ?string
     {
         $lines = $this->getLines($text);
+        $count = 0;
         foreach ($lines as $line) {
             $line = trim($line);
             if (strlen($line) < 3 || strlen($line) > 50) {
                 continue;
             }
+            // Skip common metadata headers often found in raw PDF scrapes
+            if (preg_match('/^(sRGB|IEC|Adobe|ICC|XML|DOCTYPE|html|head|meta)/i', $line)) {
+                continue;
+            }
             if (filter_var($line, FILTER_VALIDATE_EMAIL)) {
                 continue;
             }
-            if (preg_match('/\d/', $line)) {
+            if (preg_match('/\d{6,}/', $line)) { // Skip long numbers like IDs or parts of keys
                 continue;
             }
-            if (preg_match('/\b(resume|cv|curriculum vitae|profile|contact|email|phone|address|page)\b/i', $line)) {
+            if (preg_match('/\b(resume|cv|curriculum vitae|profile|contact|email|phone|address|page|strengths|education|experience|projects)\b/i', $line)) {
                 continue;
             }
-            if (str_word_count($line) >= 2 && str_word_count($line) <= 4) {
+
+            $words = str_word_count($line);
+            if ($words >= 2 && $words <= 5) {
                 return $line;
             }
+
+            $count++;
+            if ($count > 15)
+                break; // Look only at the beginning
         }
 
         return null;
@@ -271,8 +369,19 @@ class ResumeParserService
         $startIndex = null;
 
         foreach ($lines as $index => $line) {
+            $trimmedLine = trim($line);
+            if ($trimmedLine === '')
+                continue;
+
             foreach ($keywords as $keyword) {
-                if (preg_match('/^' . preg_quote($keyword, '/') . '\b/i', $line) || preg_match('/\b' . preg_quote($keyword, '/') . '\b$/i', $line)) {
+                // Match keyword as start of header (e.g. "Experience (2 years)")
+                // Using regex that allows the word to be anywhere in the header line but usually at start
+                if (preg_match('/^[\s\-\*_]*' . preg_quote($keyword, '/') . 's?\b.*$/i', $trimmedLine) && strlen($trimmedLine) < 50) {
+                    $startIndex = $index + 1;
+                    break 2;
+                }
+                // Match keyword as a prominent header (e.g. "--- EXPERIENCE ---")
+                if (preg_match('/^[\s\-\*_]*' . preg_quote($keyword, '/') . '[\s\-\*_]*$/i', $trimmedLine)) {
                     $startIndex = $index + 1;
                     break 2;
                 }
@@ -294,7 +403,8 @@ class ResumeParserService
                 break;
             }
             $section[] = trim(ltrim($line, "-•*·\t "));
-            if (count($section) > 15) break; // Safety limit
+            if (count($section) > 15)
+                break; // Safety limit
         }
 
         return $section;
@@ -348,5 +458,46 @@ class ResumeParserService
     protected function isPdfToTextAvailable(): bool
     {
         return true; // We'll use the PHP library instead
+    }
+
+    protected function extractProfilePhoto(string $path): ?string
+    {
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if ($extension === 'docx') {
+            return $this->extractDocxImage($path);
+        }
+
+        // PDF image extraction is complex without Imagick, skipping for now
+        return null;
+    }
+
+    protected function extractDocxImage(string $path): ?string
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            return null;
+        }
+
+        $imagePath = null;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (preg_match('/word\/media\/(image\d+)\.(png|jpg|jpeg|gif)/i', $name, $matches)) {
+                // Usually the first image in a CV is the profile photo
+                $imageData = $zip->getFromIndex($i);
+                $imagePath = $this->saveImage($imageData, $matches[2]);
+                break;
+            }
+        }
+
+        $zip->close();
+        return $imagePath;
+    }
+
+    protected function saveImage(string $data, string $extension): string
+    {
+        $filename = 'profile-photos/' . uniqid() . '.' . $extension;
+        Storage::disk('public')->put($filename, $data);
+        return $filename;
     }
 }

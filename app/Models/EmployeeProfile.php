@@ -36,11 +36,14 @@ class EmployeeProfile extends Model
         'city',
         'state',
         'country',
+        'profile_photo_path',
+        'parsed_data',
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
         'expected_salary' => 'decimal:2',
+        'parsed_data' => 'array',
     ];
 
     /**

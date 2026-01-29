@@ -28,6 +28,21 @@ class ProfileController extends Controller
             return redirect()->route('employee.profile.complete');
         }
 
+        // Trigger parsing if missing
+        if ($user->cv_path && !$profile->parsed_data) {
+            try {
+                $parser = new ResumeParserService();
+                $parsed = $parser->parseFromStorage($user->cv_path);
+
+                $profile->update([
+                    'parsed_data' => $parsed,
+                    'profile_photo_path' => $parsed['profile_photo'] ?? $profile->profile_photo_path,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to parse resume on profile view', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
+        }
+
         return view('profiles.employee.show', compact('profile'));
     }
 
@@ -100,6 +115,18 @@ class ProfileController extends Controller
             $cvPath = $request->file('cv')->store('cvs', 'public');
             $user->cv_path = $cvPath;
             $user->save();
+
+            // Store new parsed data
+            try {
+                $parser = new ResumeParserService();
+                $parsed = $parser->parseFromStorage($cvPath);
+                $profile->update([
+                    'parsed_data' => $parsed,
+                    'profile_photo_path' => $parsed['profile_photo'] ?? $profile->profile_photo_path,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to parse resume after update', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
         }
 
         // Update profile
@@ -123,23 +150,6 @@ class ProfileController extends Controller
             'linkedin_url' => $request->linkedin_url,
             'portfolio_url' => $request->portfolio_url,
         ]);
-
-        if ($user->cv_path && (!$request->skills || !$request->experience)) {
-            $parser = new ResumeParserService();
-            $parsed = $parser->parseFromStorage($user->cv_path);
-
-            $updates = [];
-            if (!$request->skills && !empty($parsed['skills'])) {
-                $updates['skills'] = implode(', ', $parsed['skills']);
-            }
-            if (!$request->experience && !empty($parsed['experience'])) {
-                $updates['experience'] = $parsed['experience'];
-            }
-
-            if (!empty($updates)) {
-                $profile->update($updates);
-            }
-        }
 
         $user->name = $request->name;
         $user->save();
@@ -258,5 +268,30 @@ class ProfileController extends Controller
         $user->save();
 
         return redirect()->route('employer.profile')->with('success', 'Profile updated successfully.');
+    }
+
+    public function refreshFromCv(Request $request)
+    {
+        $user = auth()->user();
+        $profile = $user->employeeProfile;
+
+        if (!$user->cv_path) {
+            return redirect()->back()->with('error', 'No CV found to refresh from.');
+        }
+
+        try {
+            $parser = new ResumeParserService();
+            $parsed = $parser->parseFromStorage($user->cv_path);
+
+            $profile->update([
+                'parsed_data' => $parsed,
+                'profile_photo_path' => $parsed['profile_photo'] ?? $profile->profile_photo_path,
+            ]);
+
+            return redirect()->back()->with('success', 'Profile data refreshed from CV successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to refresh profile from CV', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            return redirect()->back()->with('error', 'Failed to refresh data from CV: ' . $e->getMessage());
+        }
     }
 }
