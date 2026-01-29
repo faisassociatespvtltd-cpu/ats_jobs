@@ -20,46 +20,46 @@ class JobPostingController extends Controller
     public function index(Request $request)
     {
         $query = JobPosting::query();
-        
+
         // Filters
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('company_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('location', 'like', '%' . $request->search . '%');
+                    ->orWhere('company_name', 'like', '%' . $request->search . '%')
+                    ->orWhere('location', 'like', '%' . $request->search . '%');
             });
         }
-        
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
+
         if ($request->filled('job_type')) {
             $query->where('job_type', $request->job_type);
         }
-        
+
         // Sorting
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
-        
+
         $jobPostings = $query->paginate(30);
-        
+
         // Summaries
         $totalJobs = JobPosting::count();
         $activeJobs = JobPosting::where('status', 'active')->count();
         $draftJobs = JobPosting::where('status', 'draft')->count();
         $closedJobs = JobPosting::where('status', 'closed')->count();
-        
+
         return view('job-postings.index', compact('jobPostings', 'totalJobs', 'activeJobs', 'draftJobs', 'closedJobs'));
     }
-    
+
     public function create()
     {
         $this->ensureEmployer();
         return view('job-postings.create');
     }
-    
+
     public function store(Request $request)
     {
         $this->ensureEmployer();
@@ -80,11 +80,11 @@ class JobPostingController extends Controller
             'requirements' => 'nullable|array',
             'benefits' => 'nullable|array',
         ]);
-        
+
         $validated['posted_by'] = auth()->id();
         $validated['posted_date'] = now();
         $validated['status'] = $validated['status'] ?? 'active';
-        
+
         $parser = new JobParserService();
         $parsed = $parser->parse($validated['description']);
 
@@ -101,24 +101,24 @@ class JobPostingController extends Controller
         }
 
         JobPosting::create($validated);
-        
+
         return redirect()->route('employer.jobs')->with('toast', [
             'type' => 'success',
             'message' => 'Job successfully parsed and posted! You can view your posted jobs in your dashboard.',
         ]);
     }
-    
+
     public function show(JobPosting $jobPosting)
     {
         return view('job-postings.show', compact('jobPosting'));
     }
-    
+
     public function edit(JobPosting $jobPosting)
     {
         $this->ensureEmployer();
         return view('job-postings.edit', compact('jobPosting'));
     }
-    
+
     public function update(Request $request, JobPosting $jobPosting)
     {
         $this->ensureEmployer();
@@ -139,15 +139,15 @@ class JobPostingController extends Controller
             'requirements' => 'nullable|array',
             'benefits' => 'nullable|array',
         ]);
-        
+
         $jobPosting->update($validated);
-        
+
         return redirect()->route('employer.jobs')->with('toast', [
             'type' => 'success',
             'message' => 'Job posting updated successfully.',
         ]);
     }
-    
+
     public function destroy(JobPosting $jobPosting)
     {
         $this->ensureEmployer();
@@ -166,11 +166,6 @@ class JobPostingController extends Controller
         $locationFilter = $request->get('location');
         $skillsFilter = $request->get('skills');
         $jobTypeFilter = $request->get('job_type');
-
-        if (!$request->hasAny(['location', 'skills', 'job_type']) && $profile) {
-            $locationFilter = $profile->location ?: $profile->city;
-            $skillsFilter = $profile->skills;
-        }
 
         if ($locationFilter) {
             $query->where('location', 'like', '%' . $locationFilter . '%');
@@ -328,19 +323,19 @@ class JobPostingController extends Controller
 
         return view('job-postings.applicants', compact('jobPosting', 'applicants'));
     }
-    
+
     public function exportExcel()
     {
         // Excel export will be implemented with maatwebsite/excel package
         return response()->download(storage_path('app/exports/job-postings.xlsx'));
     }
-    
+
     public function exportPdf()
     {
         // PDF export will be implemented with dompdf package
         return response()->download(storage_path('app/exports/job-postings.pdf'));
     }
-    
+
     public function importExcel(Request $request)
     {
         // Excel import will be implemented with maatwebsite/excel package

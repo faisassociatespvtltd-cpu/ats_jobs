@@ -128,7 +128,7 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
@@ -169,9 +169,9 @@ class AuthController extends Controller
         $user->name = $request->name;
         $user->save();
 
-        return redirect()->route('employee.profile.complete')->with('toast', [
+        return redirect()->route('jobs.index')->with('toast', [
             'type' => 'success',
-            'message' => 'Profile completed successfully!',
+            'message' => 'Profile completed successfully! Welcome to the job board.',
         ]);
     }
 
@@ -355,7 +355,7 @@ class AuthController extends Controller
         if (Auth::validate($credentials)) {
             $user = User::where('email', $request->email)->first();
 
-            if (!$user->email_verified_at) {
+            if (!$user->email_verified_at && $user->isEmployer()) {
                 $this->sendOtpEmail($user);
                 session([
                     'login_user_id' => $user->id,
@@ -370,7 +370,7 @@ class AuthController extends Controller
                 $request->session()->regenerate();
 
                 if (Auth::user()->isEmployee()) {
-                    return redirect()->intended(route('employee.profile'))->with('toast', [
+                    return redirect()->intended(route('jobs.index'))->with('toast', [
                         'type' => 'success',
                         'message' => 'Login successful! Welcome back.',
                     ]);
@@ -422,19 +422,19 @@ class AuthController extends Controller
         }
 
         if (!$user->otp || !$user->otp_expires_at || $user->otp !== $request->otp || $user->otp_expires_at < now()) {
-             return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please try again.']);
+            return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please try again.']);
         }
 
         $remember = session('login_remember', false);
         Auth::login($user, $remember);
-        
+
         // Clear OTP
         $user->update([
             'otp' => null,
             'otp_expires_at' => null,
             'email_verified_at' => $user->email_verified_at ?? now(),
         ]);
-        
+
         session()->forget(['login_user_id', 'login_remember']);
         $request->session()->regenerate();
 
