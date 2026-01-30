@@ -47,7 +47,7 @@
 
         /* Top Navigation Bar */
         .navbar {
-            background-color: var(--primary-color);
+            background: linear-gradient(90deg, #0b66c3 0%, #0f77d9 45%, #0a56ad 100%);
             color: white;
             min-height: 70px;
             display: flex;
@@ -60,12 +60,11 @@
         }
 
         .navbar-brand {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             margin-right: 20px;
-            margin-left: 50px;
-            /* Shift logo/brand to the right */
-            color: white;
+            margin-left: 0;
+            color: var(--primary-color);
             text-decoration: none;
             display: flex;
             flex-direction: column;
@@ -73,11 +72,21 @@
             justify-content: center;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            align-self: stretch;
+            background: #ffffff;
+            padding: 6px 18px;
+            border-right: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .navbar-logo {
-            height: 40px;
-            margin-bottom: 2px;
+            height: 52px;
+            margin-bottom: 4px;
+        }
+
+        .navbar-brand-text {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-color);
         }
 
         .navbar-menu {
@@ -98,7 +107,7 @@
         .navbar-menu>li>a {
             color: white;
             text-decoration: none;
-            padding: 12px 16px;
+            padding: 8px 16px;
             display: inline-flex;
             align-items: center;
             height: 100%;
@@ -413,11 +422,11 @@
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="navbar-brand">
             <img src="{{ asset('assets/images/eitmad.png') }}" alt="Logo" class="navbar-logo">
-            ATS Job Site
+            <span class="navbar-brand-text">ATS Job Portal</span>
         </a>
         <ul class="navbar-menu">
             <li>
-                <a href="#">ATS Recruitment</a>
+                <a href="#" class="mt-3">ATS Recruitment</a>
                 <ul class="submenu">
                     @auth
                         @if(auth()->user()->isEmployer())
@@ -433,7 +442,7 @@
                 </ul>
             </li>
             <li>
-                <a href="#">Labour Laws</a>
+                <a href="#" class="mt-3">Labour Laws</a>
                 <ul class="submenu">
                     <li><a href="{{ route('labour-laws.index') }}?type=law">Country Laws</a></li>
                     <li><a href="{{ route('labour-laws.index') }}?type=article">Articles & Books</a></li>
@@ -442,7 +451,7 @@
             </li>
             @if(!auth()->check() || auth()->user()->isEmployer())
                 <li>
-                    <a href="#">Job Scraping</a>
+                    <a href="#" class="mt-3">Job Scraping</a>
                     <ul class="submenu">
                         <li><a href="{{ route('scraped-jobs.index') }}?source=whatsapp">WhatsApp Jobs</a></li>
                         <li><a href="{{ route('scraped-jobs.index') }}?source=linkedin">LinkedIn Jobs</a></li>
@@ -452,14 +461,14 @@
                 </li>
             @endif
             <li>
-                <a href="#">Blog & Community</a>
+                <a href="#" class="mt-3">Blog & Community</a>
                 <ul class="submenu">
                     <li><a href="{{ route('blogs.index') }}">Member Blogs</a></li>
                     <li><a href="{{ route('forums.index') }}">Discussion Forums</a></li>
                 </ul>
             </li>
             <li>
-                <a href="#">Membership</a>
+                <a href="#" class="mt-3">Membership</a>
                 <ul class="submenu">
                     <li><a href="{{ route('memberships.index') }}">Memberships</a></li>
                     <li><a href="{{ route('memberships.referrals') }}">Referral Invites</a></li>
@@ -468,7 +477,7 @@
             @auth
                 @if(auth()->user()->isSuperAdmin())
                 <li>
-                    <a href="{{ route('superadmin.dashboard') }}" style="color: var(--warning-color); font-weight: bold;">Super Admin</a>
+                    <a href="{{ route('superadmin.dashboard') }}" style="color: var(--warning-color); font-weight: bold;" class="mt-3">Super Admin</a>
                 </li>
                 @endif
             @endauth

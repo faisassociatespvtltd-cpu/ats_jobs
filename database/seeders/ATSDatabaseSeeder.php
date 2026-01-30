@@ -11,8 +11,10 @@ use App\Models\Resume;
 use App\Models\LabourLaw;
 use App\Models\ScrapedJob;
 use App\Models\Blog;
+use App\Models\ActivityLog;
 use App\Models\Forum;
 use App\Models\Membership;
+use App\Models\SocialMediaShare;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -112,6 +114,46 @@ class ATSDatabaseSeeder extends Seeder
         foreach ($users as $user) {
             Membership::factory()->create([
                 'user_id' => $user->id,
+            ]);
+        }
+
+        // Create Activity Logs
+        $logTypes = ['resume_parse', 'job_parse', 'web_scrape', 'login_otp', 'profile_update'];
+        foreach ($users->take(20) as $user) {
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'type' => $logTypes[array_rand($logTypes)],
+                'description' => fake()->sentence(),
+                'confidence_score' => fake()->randomFloat(2, 70, 99),
+                'metadata' => [
+                    'ip' => fake()->ipv4(),
+                    'user_agent' => fake()->userAgent(),
+                ],
+            ]);
+        }
+
+        // Create Social Media Shares
+        foreach ($jobPostings->take(15) as $job) {
+            SocialMediaShare::create([
+                'shareable_type' => JobPosting::class,
+                'shareable_id' => $job->id,
+                'platform' => fake()->randomElement(['linkedin', 'facebook', 'twitter']),
+                'shared_by' => $users->random()->id,
+                'share_url' => fake()->url(),
+                'message' => fake()->sentence(10),
+                'shared_at' => now()->subDays(rand(1, 30)),
+            ]);
+        }
+
+        foreach (Blog::all()->take(5) as $blog) {
+            SocialMediaShare::create([
+                'shareable_type' => Blog::class,
+                'shareable_id' => $blog->id,
+                'platform' => fake()->randomElement(['linkedin', 'facebook', 'twitter']),
+                'shared_by' => $users->random()->id,
+                'share_url' => fake()->url(),
+                'message' => fake()->sentence(12),
+                'shared_at' => now()->subDays(rand(1, 30)),
             ]);
         }
     }
