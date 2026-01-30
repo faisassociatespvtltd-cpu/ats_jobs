@@ -86,19 +86,22 @@
             flex: 1;
             align-items: center;
             justify-content: center;
-            margin-left: 30px;
-            /* Reduced offset for better balance */
         }
 
         .navbar-menu>li {
             position: relative;
+            display: flex;
+            align-items: center;
+            height: 100%;
         }
 
         .navbar-menu>li>a {
             color: white;
             text-decoration: none;
             padding: 12px 16px;
-            display: block;
+            display: inline-flex;
+            align-items: center;
+            height: 100%;
             transition: background-color 0.2s;
             border-radius: 2px;
         }
@@ -495,6 +498,17 @@
     <div class="main-container">
         @yield('content')
     </div>
+
+    <footer style="border-top: 1px solid var(--border-color); background: var(--primary-color);">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 2px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #ffffff; font-weight: 600; line-height: 20px;">
+                Powerd by Fais Associates Privated Limmited
+            </span>
+            <a href="https://www.fais.digital/" target="_blank" style="text-decoration: none; color: #ffffff; font-weight: 600; line-height: 20px;">
+                www.fais.digital
+            </a>
+        </div>
+    </footer>
 
     @php
         $toast = session('toast');

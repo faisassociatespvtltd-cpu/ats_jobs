@@ -6,7 +6,7 @@
     <div class="form-header">
         <h1 class="form-title">Super Admin Dashboard</h1>
         <div class="form-actions">
-            <span class="badge bg-primary">Real-time Analytics</span>
+            <span class="btn btn-primary btn-sm">Real-time Analytics</span>
         </div>
     </div>
 
