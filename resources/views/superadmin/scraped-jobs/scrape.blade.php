@@ -23,10 +23,16 @@
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="url-group">
                 <label for="url">Source URL</label>
-                <input type="url" name="url" id="url" class="form-control" placeholder="https://example.com/jobs" required>
-                <small class="text-muted">Enter the URL of the job listing or company page</small>
+                <input type="url" name="url" id="url" class="form-control" placeholder="https://example.com/jobs">
+                <small class="text-muted">Enter the URL if available (optional for WhatsApp Paste)</small>
+            </div>
+
+            <div class="form-group" id="paste-group">
+                <label for="pasted_data">Or Paste Data (WhatsApp/Text)</label>
+                <textarea name="pasted_data" id="pasted_data" class="form-control" rows="10" placeholder="Paste job descriptions or messages here..."></textarea>
+                <small class="text-muted">You can paste multiple messages at once. Use "===" or "---" to separate different jobs if they are in one message.</small>
             </div>
 
             <div class="alert alert-info"

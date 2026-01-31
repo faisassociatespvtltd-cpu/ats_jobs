@@ -147,12 +147,36 @@ class SuperAdminController extends Controller
     {
         $request->validate([
             'source' => 'required|in:whatsapp,linkedin,facebook,instagram,other',
-            'url' => 'required|url'
+            'url' => 'nullable|url',
+            'pasted_data' => 'nullable|string'
         ]);
+
+        if (!$request->url && !$request->pasted_data) {
+            return redirect()->back()->with('error', 'Please provide either a URL or paste some data.');
+        }
 
         $scrapingService = new \App\Services\ScrapingService();
 
-        // Log the scraping attempt
+        if ($request->filled('pasted_data')) {
+            $results = $scrapingService->processPastedData($request->pasted_data, $request->source);
+            
+            foreach ($results as $jobData) {
+                \App\Models\ScrapedJob::create($jobData);
+            }
+
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'type' => 'job_scrape_paste',
+                'description' => "Processed " . count($results) . " jobs from pasted {$request->source} data",
+                'confidence_score' => 100,
+                'metadata' => ['source' => $request->source, 'count' => count($results)]
+            ]);
+
+            return redirect()->route('superadmin.scraped-jobs')
+                ->with('success', count($results) . ' jobs extracted from pasted data.');
+        }
+
+        // Fallback to URL-based placeholder
         ActivityLog::create([
             'user_id' => auth()->id(),
             'type' => 'job_scrape_attempt',
@@ -162,6 +186,6 @@ class SuperAdminController extends Controller
         ]);
 
         return redirect()->route('superadmin.scraped-jobs')
-            ->with('info', 'Scraping initiated. This feature requires API integration for ' . $request->source);
+            ->with('info', 'Scraping initiated for ' . $request->url . '. Note: Automated scraping for ' . $request->source . ' requires API configuration.');
     }
 }
