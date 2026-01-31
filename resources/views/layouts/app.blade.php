@@ -27,6 +27,9 @@
             color: #323130;
             background-color: #faf9f8;
             line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         /* MS Dynamics Color Scheme */
@@ -162,6 +165,7 @@
         .main-container {
             padding: 24px;
             max-width: 100%;
+            flex: 1 0 auto;
         }
 
         /* Form Container */
@@ -408,6 +412,12 @@
                 transform: rotate(360deg);
             }
         }
+
+        footer {
+            flex-shrink: 0;
+            border-top: 1px solid var(--border-color);
+            background: var(--primary-color);
+        }
     </style>
 
     @stack('styles')
@@ -468,10 +478,23 @@
                 </ul>
             </li>
             <li>
-                <a href="#" class="mt-3">Membership</a>
+                <a href="#" class="mt-3">
+                    @auth
+                        {{ auth()->user()->isEmployee() ? 'Invite Referral' : 'Membership' }}
+                    @else
+                        Membership
+                    @endauth
+                </a>
                 <ul class="submenu">
-                    <li><a href="{{ route('memberships.index') }}">Memberships</a></li>
-                    <li><a href="{{ route('memberships.referrals') }}">Referral Invites</a></li>
+                    @auth
+                        @if(!auth()->user()->isEmployee())
+                            <li><a href="{{ route('memberships.index') }}">Memberships</a></li>
+                        @endif
+                        <li><a href="{{ route('memberships.referrals') }}">Referral Invites</a></li>
+                    @else
+                        <li><a href="{{ route('memberships.index') }}">Memberships</a></li>
+                        <li><a href="{{ route('memberships.referrals') }}">Referral Invites</a></li>
+                    @endauth
                 </ul>
             </li>
             @auth
@@ -508,10 +531,10 @@
         @yield('content')
     </div>
 
-    <footer style="border-top: 1px solid var(--border-color); background: var(--primary-color);">
+    <footer>
         <div style="max-width: 1200px; margin: 0 auto; padding: 2px 24px; display: flex; justify-content: space-between; align-items: center;">
             <span style="color: #ffffff; font-weight: 600; line-height: 20px;">
-                Powerd by Fais Associates Privated Limmited
+                Powered by Fais Associates Private Limited
             </span>
             <a href="https://www.fais.digital/" target="_blank" style="text-decoration: none; color: #ffffff; font-weight: 600; line-height: 20px;">
                 www.fais.digital
