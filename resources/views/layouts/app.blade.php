@@ -436,12 +436,18 @@
         </a>
         <ul class="navbar-menu">
             <li>
-                <a href="#" class="mt-3">ATS Recruitment</a>
+                <a href="#" class="mt-3">
+                    @auth
+                        {{ auth()->user()->isEmployee() ? 'My Jobs' : 'ATS Recruitment' }}
+                    @else
+                        ATS Recruitment
+                    @endauth
+                </a>
                 <ul class="submenu">
                     @auth
                         @if(auth()->user()->isEmployer())
-                            <li><a href="{{ route('job-postings.create') }}">Job Posting</a></li>
-                            <li><a href="{{ route('employer.jobs') }}">Employer's Jobs</a></li>
+                            <li><a href="{{ route('job-postings.create') }}">New Job Posting</a></li>
+                            <li><a href="{{ route('employer.jobs') }}">My Jobs</a></li>
                             <li><a href="{{ route('applicants.index') }}">Applicants</a></li>
                         @else
                             <li><a href="{{ route('jobs.index') }}">Job Board</a></li>
@@ -457,9 +463,10 @@
                     <li><a href="{{ route('labour-laws.index') }}?type=law">Country Laws</a></li>
                     <li><a href="{{ route('labour-laws.index') }}?type=article">Articles & Books</a></li>
                     <li><a href="{{ route('labour-laws.index') }}?type=qa">Legal Q&A</a></li>
+                    <li><a href="{{ route('labour-laws.ask') }}">Ask Question</a></li>
                 </ul>
             </li>
-            @if(!auth()->check() || auth()->user()->isEmployer())
+            @if(!auth()->check() || auth()->user()->isEmployee())
                 <li>
                     <a href="#" class="mt-3">Job Scraping</a>
                     <ul class="submenu">
@@ -480,14 +487,14 @@
             <li>
                 <a href="#" class="mt-3">
                     @auth
-                        {{ auth()->user()->isEmployee() ? 'Invite Referral' : 'Membership' }}
+                        {{ (auth()->user()->isEmployee() || auth()->user()->isEmployer()) ? 'Invite Referral' : 'Membership' }}
                     @else
                         Membership
                     @endauth
                 </a>
                 <ul class="submenu">
                     @auth
-                        @if(!auth()->user()->isEmployee())
+                        @if(!auth()->user()->isEmployee() && !auth()->user()->isEmployer())
                             <li><a href="{{ route('memberships.index') }}">Memberships</a></li>
                         @endif
                         <li><a href="{{ route('memberships.referrals') }}">Referral Invites</a></li>

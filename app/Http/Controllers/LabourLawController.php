@@ -41,6 +41,11 @@ class LabourLawController extends Controller
         return view('labour-laws.index', compact('labourLaws', 'totalLaws', 'laws', 'articles', 'qa'));
     }
     
+    public function ask()
+    {
+        return view('labour-laws.ask');
+    }
+
     public function create()
     {
         return view('labour-laws.create');

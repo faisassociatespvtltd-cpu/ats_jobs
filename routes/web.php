@@ -93,6 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::get('resumes/{resume}/print', [ResumeController::class, 'print'])->name('resumes.print');
 
     // Labour Laws
+    Route::get('labour-laws/ask', [LabourLawController::class, 'ask'])->name('labour-laws.ask');
     Route::resource('labour-laws', LabourLawController::class);
 
     // Scraped Jobs
