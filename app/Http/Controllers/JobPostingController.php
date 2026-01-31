@@ -76,7 +76,7 @@ class JobPostingController extends Controller
             'education_required' => 'nullable|string|max:255',
             'experience_required' => 'nullable|string|max:255',
             'closing_date' => 'required|date|after_or_equal:today',
-            'status' => 'nullable|in:draft,active,closed,cancelled',
+            'status' => 'nullable|in:draft,active,closed,cancelled,inactive',
             'requirements' => 'nullable|array',
             'benefits' => 'nullable|array',
         ]);
@@ -135,7 +135,7 @@ class JobPostingController extends Controller
             'education_required' => 'nullable|string|max:255',
             'experience_required' => 'nullable|string|max:255',
             'closing_date' => 'required|date|after_or_equal:today',
-            'status' => 'required|in:draft,active,closed,cancelled',
+            'status' => 'required|in:draft,active,closed,cancelled,inactive',
             'requirements' => 'nullable|array',
             'benefits' => 'nullable|array',
         ]);
@@ -209,6 +209,10 @@ class JobPostingController extends Controller
 
     public function employeeShow(JobPosting $jobPosting)
     {
+        if ($jobPosting->status !== 'active' && (!auth()->check() || !auth()->user()->isEmployer())) {
+            abort(404, 'This job posting is no longer active.');
+        }
+
         $hasApplied = false;
         if (auth()->check() && auth()->user()->isEmployee()) {
             $hasApplied = Applicant::where('job_posting_id', $jobPosting->id)
@@ -284,6 +288,30 @@ class JobPostingController extends Controller
             ->paginate(20);
 
         return view('employer.jobs.index', compact('jobs'));
+    }
+
+    public function bulkStatusUpdate(Request $request)
+    {
+        $this->ensureEmployer();
+        
+        $validated = $request->validate([
+            'job_ids' => 'required|array',
+            'job_ids.*' => 'exists:job_postings,id',
+            'status' => 'required|in:active,inactive,closed',
+        ]);
+
+        $status = $validated['status'];
+        $jobIds = $validated['job_ids'];
+
+        // Ensure the employer owns these jobs
+        JobPosting::whereIn('id', $jobIds)
+            ->where('posted_by', auth()->id())
+            ->update(['status' => $status]);
+
+        return redirect()->back()->with('toast', [
+            'type' => 'success',
+            'message' => 'Status updated for selected jobs.',
+        ]);
     }
 
     public function applicants(JobPosting $jobPosting, Request $request)

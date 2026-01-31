@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
 
     // Employer Job Dashboard
     Route::get('/employer/jobs', [JobPostingController::class, 'employerIndex'])->name('employer.jobs');
+    Route::post('/employer/jobs/bulk-status', [JobPostingController::class, 'bulkStatusUpdate'])->name('employer.jobs.bulk-status');
     Route::get('/employer/jobs/{jobPosting}/applicants', [JobPostingController::class, 'applicants'])->name('employer.jobs.applicants');
 
     // Job Postings

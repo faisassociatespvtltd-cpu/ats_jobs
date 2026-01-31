@@ -7,8 +7,12 @@
     <div class="form-header">
         <h1 class="form-title">{{ $jobPosting->title }}</h1>
         <div class="form-actions">
-            <a href="{{ route('job-postings.edit', $jobPosting) }}" class="btn btn-secondary">Edit</a>
-            <a href="{{ route('job-postings.index') }}" class="btn btn-secondary">Back</a>
+            @if(auth()->check() && auth()->user()->isEmployer())
+                <a href="{{ route('job-postings.edit', $jobPosting) }}" class="btn btn-secondary">Edit</a>
+                <a href="{{ route('employer.jobs') }}" class="btn btn-secondary">Back</a>
+            @else
+                <a href="{{ route('job-postings.index') }}" class="btn btn-secondary">Back</a>
+            @endif
         </div>
     </div>
 
