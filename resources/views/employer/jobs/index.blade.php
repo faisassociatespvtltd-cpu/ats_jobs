@@ -10,6 +10,45 @@
             <a href="{{ route('job-postings.create') }}" class="btn btn-primary">Add New Job</a>
         </div>
     </div>
+    <div class="filters-section mb-4">
+        <form method="GET" action="{{ route('employer.jobs') }}">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <div class="form-group mb-0">
+                        <label class="small text-muted">Search Jobs</label>
+                        <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Title, location...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group mb-0">
+                        <label class="small text-muted">Status</label>
+                        <select name="status" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
+                            <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group mb-0">
+                        <label class="small text-muted">Job Type</label>
+                        <select name="job_type" class="form-control">
+                            <option value="">All Types</option>
+                            <option value="Full-time" {{ request('job_type') == 'Full-time' ? 'selected' : '' }}>Full-time</option>
+                            <option value="Part-time" {{ request('job_type') == 'Part-time' ? 'selected' : '' }}>Part-time</option>
+                            <option value="Contract" {{ request('job_type') == 'Contract' ? 'selected' : '' }}>Contract</option>
+                            <option value="Freelance" {{ request('job_type') == 'Freelance' ? 'selected' : '' }}>Freelance</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
 
     <div class="table-container">
         <form id="bulk-action-form" action="{{ route('employer.jobs.bulk-status') }}" method="POST">

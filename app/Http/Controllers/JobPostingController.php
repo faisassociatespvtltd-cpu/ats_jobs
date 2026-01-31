@@ -279,13 +279,34 @@ class JobPostingController extends Controller
         ]);
     }
 
-    public function employerIndex()
+    public function employerIndex(Request $request)
     {
         $this->ensureEmployer();
-        $jobs = JobPosting::where('posted_by', auth()->id())
-            ->withCount('applicants')
-            ->orderByDesc('posted_date')
-            ->paginate(20);
+        
+        $query = JobPosting::where('posted_by', auth()->id())
+            ->withCount('applicants');
+
+        // Filters
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('location', 'like', '%' . $search . '%')
+                    ->orWhere('company_name', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('job_type')) {
+            $query->where('job_type', $request->job_type);
+        }
+
+        $jobs = $query->orderByDesc('posted_date')
+            ->paginate(20)
+            ->withQueryString();
 
         return view('employer.jobs.index', compact('jobs'));
     }
