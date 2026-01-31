@@ -122,7 +122,7 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
-        .navbar-menu>li:hover .submenu {
+        .submenu.show {
             display: block;
         }
 
@@ -575,6 +575,42 @@
                 preloader.style.transition = 'opacity 0.3s';
                 setTimeout(() => preloader.remove(), 300);
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuItems = document.querySelectorAll('.navbar-menu > li > a');
+
+            menuItems.forEach(item => {
+                // Check if this menu item has a submenu
+                if (item.nextElementSibling && item.nextElementSibling.classList.contains('submenu')) {
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const currentSubmenu = this.nextElementSibling;
+                        const allSubmenus = document.querySelectorAll('.submenu');
+
+                        // Close other submenus
+                        allSubmenus.forEach(sub => {
+                            if (sub !== currentSubmenu) {
+                                sub.classList.remove('show');
+                            }
+                        });
+
+                        // Toggle current submenu
+                        currentSubmenu.classList.toggle('show');
+                    });
+                }
+            });
+
+            // Close submenu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.navbar-menu')) {
+                    document.querySelectorAll('.submenu').forEach(sub => {
+                        sub.classList.remove('show');
+                    });
+                }
+            });
         });
     </script>
 </body>
