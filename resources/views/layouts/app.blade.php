@@ -417,6 +417,10 @@
             flex-shrink: 0;
             border-top: 1px solid var(--border-color);
             background: var(--primary-color);
+            position: sticky;
+            bottom: 0;
+            z-index: 1000;
+            width: 100%;
         }
     </style>
 
