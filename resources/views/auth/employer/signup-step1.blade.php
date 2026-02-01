@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Employer Signup - Step 1 - ATS Job Site</title>
+    <title>Employer Signup - Step 1 - ATS Job Portal</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -31,7 +31,13 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             max-width: 500px;
             width: 100%;
-            padding: 50px 40px;
+            padding: 40px;
+        }
+
+        .signup-logo {
+            display: block;
+            max-width: 150px;
+            margin: 0 auto 24px;
         }
         
         .signup-title {
@@ -169,6 +175,7 @@
 </head>
 <body>
     <div class="signup-container">
+        <img src="{{ asset('assets/images/eitmad.png') }}" alt="Logo" class="signup-logo">
         <h1 class="signup-title">Employer Signup</h1>
         <p class="signup-subtitle">Step 1 of 3: Create your account</p>
         

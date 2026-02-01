@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Welcome - ATS Job Site</title>
+    <title>Welcome - ATS Job Portal</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -31,8 +31,13 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             max-width: 900px;
             width: 100%;
-            padding: 60px 40px;
+            padding: 40px;
             text-align: center;
+        }
+
+        .welcome-logo {
+            max-width: 180px;
+            margin-bottom: 24px;
         }
         
         .welcome-title {
@@ -124,7 +129,8 @@
 </head>
 <body>
     <div class="welcome-container">
-        <h1 class="welcome-title">Welcome to ATS Job Site</h1>
+        <img src="{{ asset('assets/images/eitmad.png') }}" alt="Logo" class="welcome-logo">
+        <h1 class="welcome-title">Welcome to ATS Job Portal</h1>
         <p class="welcome-subtitle">Find your dream job or the perfect candidate</p>
         
         <div class="user-type-cards">

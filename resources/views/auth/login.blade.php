@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - ATS Job Site</title>
+    <title>Login - ATS Job Portal</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -31,7 +31,13 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             max-width: 450px;
             width: 100%;
-            padding: 50px 40px;
+            padding: 40px;
+        }
+
+        .login-logo {
+            display: block;
+            max-width: 150px;
+            margin: 0 auto 24px;
         }
         
         .login-title {
@@ -145,6 +151,7 @@
 </head>
 <body>
     <div class="login-container">
+        <img src="{{ asset('assets/images/eitmad.png') }}" alt="Logo" class="login-logo">
         <h1 class="login-title">Login</h1>
         <p class="login-subtitle">Sign in to your account</p>
         
