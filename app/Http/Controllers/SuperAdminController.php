@@ -115,17 +115,45 @@ class SuperAdminController extends Controller
     public function approveJob($id)
     {
         $job = \App\Models\ScrapedJob::findOrFail($id);
-        $job->update(['status' => 'approved']);
-
-        ActivityLog::create([
-            'user_id' => auth()->id(),
-            'type' => 'job_approved',
-            'description' => "Approved scraped job: {$job->title}",
-            'confidence_score' => 100,
-            'metadata' => ['job_id' => $job->id]
+        
+        // Prepare data for JobPosting
+        // Use parsed_data if available, otherwise fall back to raw fields
+        $data = $job->parsed_data ?? [];
+        
+        $jobPosting = \App\Models\JobPosting::create([
+            'title' => $data['title'] ?? $job->title,
+            'description' => $job->description,
+            'company_name' => $job->company_name ?? 'Scraped Job',
+            'location' => $data['location'] ?? ($job->location ?? 'N/A'),
+            'job_type' => $data['job_type'] ?? ($job->job_type ?? 'Full-time'),
+            'required_skills' => $data['required_skills'] ?? null,
+            'responsibilities' => $data['responsibilities'] ?? null,
+            'qualifications' => $data['qualifications'] ?? null,
+            'salary_range' => $data['salary_range'] ?? ($job->salary ?? null),
+            'status' => 'active',
+            'source' => $job->source,
+            'source_url' => $job->source_url,
+            'posted_date' => now(),
+            'posted_by' => auth()->id(),
+            'hard_skills' => $data['hard_skills'] ?? null,
+            'soft_skills' => $data['soft_skills'] ?? null,
         ]);
 
-        return redirect()->back()->with('success', 'Job approved successfully.');
+        $job->update([
+            'status' => 'approved',
+            'is_imported' => true,
+            'imported_to_job_id' => $jobPosting->id
+        ]);
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'type' => 'job_approved',
+            'description' => "Approved scraped job: {$job->title} and created job posting #{$jobPosting->id}",
+            'confidence_score' => 100,
+            'metadata' => ['job_id' => $job->id, 'job_posting_id' => $jobPosting->id]
+        ]);
+
+        return redirect()->back()->with('success', 'Job approved and posted to the job board.');
     }
 
     public function rejectJob($id)
@@ -167,6 +195,7 @@ class SuperAdminController extends Controller
             $results = $scrapingService->processPastedData($request->pasted_data, $request->source);
             
             foreach ($results as $jobData) {
+                $jobData['user_id'] = auth()->id();
                 \App\Models\ScrapedJob::create($jobData);
             }
 

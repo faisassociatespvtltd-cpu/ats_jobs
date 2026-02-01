@@ -17,7 +17,7 @@ class JobPosting extends Model
         'title', 'description', 'company_name', 'location', 'required_skills', 'job_type',
         'salary_min', 'salary_max', 'salary_range', 'experience_level', 'education_required',
         'experience_required', 'posted_date',
-        'closing_date', 'status', 'posted_by', 'requirements', 'benefits', 'other_details',
+        'closing_date', 'status', 'source', 'source_url', 'posted_by', 'requirements', 'benefits', 'other_details',
         'responsibilities', 'qualifications', 'hard_skills', 'soft_skills', 'parsed_at',
     ];
 

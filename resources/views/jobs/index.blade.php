@@ -57,7 +57,9 @@
                     </td>
                     <td>{{ $job->company_name }}</td>
                     <td>{{ $job->location }}</td>
-                    <td>{{ $job->job_type }}</td>
+                    <td>
+                        {{ $job->job_type }}
+                    </td>
                     <td>
                         @if($job->salary_min || $job->salary_max)
                             {{ $job->salary_min ? number_format($job->salary_min, 2) : 'N/A' }} - {{ $job->salary_max ? number_format($job->salary_max, 2) : 'N/A' }}
