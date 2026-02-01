@@ -103,26 +103,50 @@ class MembershipController extends Controller
     
     public function referrals(Request $request)
     {
-        $query = Membership::with('user', 'referredBy')
-            ->whereNotNull('referred_by');
-        
-        if ($request->filled('search')) {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%');
-            });
+        // For Super Admin: Full list
+        if (auth()->user()->isSuperAdmin()) {
+            $query = Membership::with('user', 'referredBy')
+                ->whereNotNull('referred_by');
+            
+            if ($request->filled('search')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                      ->orWhere('email', 'like', '%' . $request->search . '%');
+                });
+            }
+            
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+            
+            $referrals = $query->paginate(30);
+            
+            $totalReferrals = Membership::whereNotNull('referred_by')->count();
+            $totalReferralCount = Membership::sum('referral_count');
+            
+            return view('memberships.referrals', compact('referrals', 'totalReferrals', 'totalReferralCount'));
         }
-        
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
-        
-        $referrals = $query->paginate(30);
-        
-        // Summaries
-        $totalReferrals = Membership::whereNotNull('referred_by')->count();
-        $totalReferralCount = Membership::sum('referral_count');
-        
-        return view('memberships.referrals', compact('referrals', 'totalReferrals', 'totalReferralCount'));
+
+        // For Regular Users: Their own referrals
+        $user = auth()->user();
+        $membership = $user->membership;
+
+        if (!$membership) {
+            // Create a basic membership if not exists
+            $membership = Membership::create([
+                'user_id' => $user->id,
+                'membership_type' => 'basic',
+                'start_date' => now(),
+                'status' => 'active',
+                'referral_code' => strtoupper(substr(md5(uniqid()), 0, 8)),
+            ]);
+        }
+
+        $referrals = Membership::with('user')
+            ->where('referred_by', $user->id)
+            ->latest()
+            ->paginate(10);
+
+        return view('memberships.my-referrals', compact('membership', 'referrals'));
     }
 }

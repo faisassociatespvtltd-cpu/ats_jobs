@@ -93,4 +93,12 @@ class User extends Authenticatable
     {
         return $this->user_type === 'superadmin';
     }
+
+    /**
+     * Get the membership record for this user.
+     */
+    public function membership()
+    {
+        return $this->hasOne(Membership::class);
+    }
 }
