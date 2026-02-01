@@ -14,10 +14,10 @@
             <div class="card p-4 mb-4" style="background: #f8f9fa; border: 1px dashed #0078D4;">
                 <h3 style="font-size: 18px; margin-bottom: 15px;">Your Referral Code</h3>
                 <div class="d-flex align-items-center gap-3">
-                    <div style="font-size: 28px; font-weight: 700; color: #0078D4; letter-spacing: 2px; padding: 10px 20px; background: white; border-radius: 8px; border: 1px solid #edebe9;">
-                        {{ $membership->referral_code }}
+                    <div style="font-size: 16px; font-weight: 600; color: #0078D4; padding: 10px 20px; background: white; border-radius: 8px; border: 1px solid #edebe9; word-break: break-all;">
+                        {{ url('/welcome?ref=' . $membership->referral_code) }}
                     </div>
-                    <button id="copyBtn" class="btn btn-primary" onclick="copyToClipboard('{{ $membership->referral_code }}')">
+                    <button id="copyBtn" class="btn btn-primary" onclick="copyToClipboard('{{ url('/welcome?ref=' . $membership->referral_code) }}')">
                         <i class="fas fa-copy"></i> <span id="copyBtnText">Copy</span>
                     </button>
                 </div>
