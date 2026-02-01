@@ -62,6 +62,8 @@
                             <td>{{ $job->scraped_at ? $job->scraped_at->format('M d, Y') : 'N/A' }}</td>
                             <td>
                                 <div class="action-buttons">
+                                    <a href="{{ route('superadmin.scraped-jobs.show', $job->id) }}" class="btn btn-sm btn-secondary">View</a>
+                                    
                                     @if($job->status === 'pending' || !$job->parsed_data)
                                         <form method="POST" action="{{ route('superadmin.scraped-jobs.parse', $job->id) }}"
                                             style="display: inline;">

@@ -81,6 +81,12 @@ class SuperAdminController extends Controller
         return view('superadmin.scraped-jobs.index', compact('scrapedJobs'));
     }
 
+    public function showScrapedJob($id)
+    {
+        $job = \App\Models\ScrapedJob::with('user')->findOrFail($id);
+        return view('superadmin.scraped-jobs.show', compact('job'));
+    }
+
     public function parseJob($id)
     {
         $job = \App\Models\ScrapedJob::findOrFail($id);

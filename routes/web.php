@@ -122,6 +122,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/scraped-jobs', [SuperAdminController::class, 'scrapedJobs'])->name('scraped-jobs');
     Route::get('/scraped-jobs/scrape', [SuperAdminController::class, 'scrapeFromSource'])->name('scraped-jobs.scrape');
     Route::post('/scraped-jobs/scrape', [SuperAdminController::class, 'executeScrape'])->name('scraped-jobs.execute');
+    Route::get('/scraped-jobs/{id}', [SuperAdminController::class, 'showScrapedJob'])->name('scraped-jobs.show');
     Route::post('/scraped-jobs/{id}/parse', [SuperAdminController::class, 'parseJob'])->name('scraped-jobs.parse');
     Route::post('/scraped-jobs/{id}/approve', [SuperAdminController::class, 'approveJob'])->name('scraped-jobs.approve');
     Route::post('/scraped-jobs/{id}/reject', [SuperAdminController::class, 'rejectJob'])->name('scraped-jobs.reject');
