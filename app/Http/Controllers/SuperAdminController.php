@@ -223,4 +223,47 @@ class SuperAdminController extends Controller
         return redirect()->route('superadmin.scraped-jobs')
             ->with('info', 'Scraping initiated for ' . $request->url . '. Note: Automated scraping for ' . $request->source . ' requires API configuration.');
     }
+
+    public function scrapedJobApplicants()
+    {
+        $applicants = \App\Models\Applicant::whereHas('jobPosting', function ($query) {
+            $query->whereNotNull('source');
+        })
+        ->with('jobPosting', 'user')
+        ->latest()
+        ->paginate(20);
+
+        return view('superadmin.scraped-jobs.applicants', compact('applicants'));
+    }
+
+    public function scrapedJobApplicantShow($id)
+    {
+        $applicant = \App\Models\Applicant::with('jobPosting', 'user.employeeProfile')->findOrFail($id);
+        return view('superadmin.scraped-jobs.applicant-show', compact('applicant'));
+    }
+
+    public function updateApplicantStatus(\Illuminate\Http\Request $request, $id)
+    {
+        $applicant = \App\Models\Applicant::findOrFail($id);
+        
+        $request->validate([
+            'status' => 'required|string',
+            'notes' => 'nullable|string'
+        ]);
+
+        $applicant->update([
+            'status' => $request->status,
+            'notes' => $request->notes ?? $applicant->notes
+        ]);
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'type' => 'applicant_status_update',
+            'description' => "Updated status for applicant {$applicant->first_name} to {$request->status}",
+            'confidence_score' => 100,
+            'metadata' => ['applicant_id' => $applicant->id, 'status' => $request->status]
+        ]);
+
+        return redirect()->back()->with('success', 'Applicant status updated successfully.');
+    }
 }

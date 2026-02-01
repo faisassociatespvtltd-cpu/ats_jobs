@@ -9,6 +9,11 @@
             <a href="{{ route('superadmin.scraped-jobs') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to List
             </a>
+            @if($job->status === 'approved' && $job->imported_to_job_id)
+                <a href="{{ route('superadmin.scraped-jobs.applicants') }}?job_id={{ $job->imported_to_job_id }}" class="btn btn-info" style="color: white;">
+                    <i class="fas fa-users"></i> View Applicants ({{ \App\Models\Applicant::where('job_posting_id', $job->imported_to_job_id)->count() }})
+                </a>
+            @endif
             @if($job->status === 'pending' || !$job->parsed_data)
                 <form method="POST" action="{{ route('superadmin.scraped-jobs.parse', $job->id) }}" style="display: inline;">
                     @csrf

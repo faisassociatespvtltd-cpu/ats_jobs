@@ -126,4 +126,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/scraped-jobs/{id}/parse', [SuperAdminController::class, 'parseJob'])->name('scraped-jobs.parse');
     Route::post('/scraped-jobs/{id}/approve', [SuperAdminController::class, 'approveJob'])->name('scraped-jobs.approve');
     Route::post('/scraped-jobs/{id}/reject', [SuperAdminController::class, 'rejectJob'])->name('scraped-jobs.reject');
+    
+    // Scraped Job Applicants
+    Route::get('/scraped-applicants', [SuperAdminController::class, 'scrapedJobApplicants'])->name('scraped-jobs.applicants');
+    Route::get('/scraped-applicants/{id}', [SuperAdminController::class, 'scrapedJobApplicantShow'])->name('scraped-jobs.applicant-show');
+    Route::post('/scraped-applicants/{id}/status', [SuperAdminController::class, 'updateApplicantStatus'])->name('scraped-jobs.applicant-status');
 });

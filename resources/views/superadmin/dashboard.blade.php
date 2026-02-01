@@ -100,6 +100,9 @@
                     <a href="{{ route('superadmin.scraped-jobs') }}" class="btn btn-secondary">
                         Manage Scraped Jobs
                     </a>
+                    <a href="{{ route('superadmin.scraped-jobs.applicants') }}" class="btn btn-info" style="color: white;">
+                        Manage Scraped Job Applicants
+                    </a>
                     <a href="{{ route('superadmin.scraped-jobs.scrape') }}" class="btn btn-success">
                         Scrape New Jobs
                     </a>

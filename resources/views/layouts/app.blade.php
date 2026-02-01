@@ -438,7 +438,11 @@
             <li>
                 <a href="#" class="mt-3">
                     @auth
-                        {{ auth()->user()->isEmployee() ? 'My Jobs' : 'ATS Recruitment' }}
+                        @if(auth()->user()->isSuperAdmin())
+                            ATS Recruitment
+                        @else
+                            My Jobs
+                        @endif
                     @else
                         ATS Recruitment
                     @endauth
@@ -446,9 +450,7 @@
                 <ul class="submenu">
                     @auth
                         @if(auth()->user()->isEmployer())
-                            <li><a href="{{ route('job-postings.create') }}">New Job Posting</a></li>
                             <li><a href="{{ route('employer.jobs') }}">My Jobs</a></li>
-                            <li><a href="{{ route('applicants.index') }}">Applicants</a></li>
                         @else
                             <li><a href="{{ route('jobs.index') }}">Job Board</a></li>
                         @endif
@@ -466,7 +468,7 @@
                     <li><a href="{{ route('labour-laws.ask') }}">Ask Question</a></li>
                 </ul>
             </li>
-            @if(!auth()->check() || auth()->user()->isEmployee())
+            @if(!auth()->check())
                 <li>
                     <a href="#" class="mt-3">Job Scraping</a>
                     <ul class="submenu">
@@ -508,6 +510,11 @@
                 @if(auth()->user()->isSuperAdmin())
                 <li>
                     <a href="{{ route('superadmin.dashboard') }}" style="color: var(--warning-color); font-weight: bold;" class="mt-3">Super Admin</a>
+                    <ul class="submenu">
+                        <li><a href="{{ route('superadmin.scraped-jobs') }}">Scraped Jobs</a></li>
+                        <li><a href="{{ route('superadmin.scraped-jobs.applicants') }}">Scraped Applicants</a></li>
+                        <li><a href="{{ route('superadmin.users') }}">System Users</a></li>
+                    </ul>
                 </li>
                 @endif
             @endauth
