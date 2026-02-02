@@ -63,9 +63,11 @@
                 <label>Experience Level</label>
                 <select name="experience_level" class="form-control">
                     <option value="">Select...</option>
-                    <option value="Entry" {{ old('experience_level') == 'Entry' ? 'selected' : '' }}>Entry</option>
-                    <option value="Mid" {{ old('experience_level') == 'Mid' ? 'selected' : '' }}>Mid</option>
-                    <option value="Senior" {{ old('experience_level') == 'Senior' ? 'selected' : '' }}>Senior</option>
+                    <option value="Fresher / Entry Level" {{ old('experience_level') == 'Fresher / Entry Level' ? 'selected' : '' }}>Fresher / Entry Level</option>
+                    <option value="Junior (1-2 Years)" {{ old('experience_level') == 'Junior (1-2 Years)' ? 'selected' : '' }}>Junior (1-2 Years)</option>
+                    <option value="Mid Level (3-5 Years)" {{ old('experience_level') == 'Mid Level (3-5 Years)' ? 'selected' : '' }}>Mid Level (3-5 Years)</option>
+                    <option value="Senior (5+ Years)" {{ old('experience_level') == 'Senior (5+ Years)' ? 'selected' : '' }}>Senior (5+ Years)</option>
+                    <option value="Expert" {{ old('experience_level') == 'Expert' ? 'selected' : '' }}>Expert</option>
                 </select>
             </div>
             

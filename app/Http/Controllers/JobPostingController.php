@@ -160,12 +160,18 @@ class JobPostingController extends Controller
 
     public function employeeIndex(Request $request)
     {
-        $query = JobPosting::where('status', 'active');
+        $query = JobPosting::where('status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('closing_date')
+                  ->orWhere('closing_date', '>=', now());
+            });
+
         $profile = auth()->user()?->employeeProfile;
 
         $locationFilter = $request->get('location');
         $skillsFilter = $request->get('skills');
         $jobTypeFilter = $request->get('job_type');
+        $experienceFilter = $request->get('experience');
 
         if ($locationFilter) {
             $query->where('location', 'like', '%' . $locationFilter . '%');
@@ -177,6 +183,41 @@ class JobPostingController extends Controller
 
         if ($skillsFilter) {
             $query->where('required_skills', 'like', '%' . $skillsFilter . '%');
+        }
+
+        if ($experienceFilter) {
+            $query->where(function($q) use ($experienceFilter) {
+                if ($experienceFilter === 'Fresher / Entry Level') {
+                    $q->where('experience_level', 'like', '%Fresher%')
+                      ->orWhere('experience_level', 'like', '%Entry%')
+                      ->orWhere('experience_required', 'like', '%0%')
+                      ->orWhere('experience_required', 'like', '%Fresh%');
+                } elseif ($experienceFilter === 'Junior (1-2 Years)') {
+                     $q->where('experience_level', 'like', '%Junior%')
+                       ->orWhere('experience_level', 'like', '%1-2%')
+                       ->orWhere('experience_required', 'like', '%1%')
+                       ->orWhere('experience_required', 'like', '%2%');
+                } elseif ($experienceFilter === 'Mid Level (3-5 Years)') {
+                     $q->where('experience_level', 'like', '%Mid%')
+                       ->orWhere('experience_level', 'like', '%3-5%')
+                       ->orWhere('experience_required', 'like', '%3%')
+                       ->orWhere('experience_required', 'like', '%4%')
+                       ->orWhere('experience_required', 'like', '%5%');
+                } elseif ($experienceFilter === 'Senior (5+ Years)') {
+                     $q->where('experience_level', 'like', '%Senior%')
+                       ->orWhere('experience_level', 'like', '%5+%')
+                       ->orWhere('experience_required', 'like', '%5%')
+                       ->orWhere('experience_required', 'like', '%6%')
+                       ->orWhere('experience_required', 'like', '%7%')
+                       ->orWhere('experience_required', 'like', '%8%')
+                       ->orWhere('experience_required', 'like', '%9%')
+                       ->orWhere('experience_required', 'like', '%10%');
+                }
+                 else {
+                     $q->where('experience_level', 'like', '%' . $experienceFilter . '%')
+                       ->orWhere('experience_required', 'like', '%' . $experienceFilter . '%');
+                }
+            });
         }
 
         $jobs = $query->orderByDesc('posted_date')->paginate(20);
@@ -204,6 +245,7 @@ class JobPostingController extends Controller
             'locationFilter' => $locationFilter,
             'skillsFilter' => $skillsFilter,
             'jobTypeFilter' => $jobTypeFilter,
+            'experienceFilter' => $experienceFilter,
         ]);
     }
 
