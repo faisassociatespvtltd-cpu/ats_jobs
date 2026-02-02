@@ -34,6 +34,19 @@
                     <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Email:</strong>
                     <span>{{ auth()->user()->email }}</span>
                 </div>
+
+                @php
+                    $avgRating = auth()->user()->average_rating;
+                    $reviewCount = auth()->user()->review_count;
+                @endphp
+                <div>
+                   <strong style="color: #605e5c; display: block; margin-bottom: 4px;">Trust Score:</strong>
+                   <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="color: #ffca08; font-size: 18px;">★</span>
+                        <span style="font-weight: 600; color: #323130;">{{ number_format($avgRating, 1) }}</span>
+                        <span style="color: #605e5c; font-size: 13px;">({{ $reviewCount }} reviews)</span>
+                   </div>
+                </div>
                 
                 @if($profile->company_address)
                 <div>

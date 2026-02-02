@@ -47,12 +47,24 @@
                     <th>CV</th>
                     <th>Profile Details</th>
                     <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($applicants as $applicant)
                 <tr>
-                    <td>{{ trim($applicant->first_name . ' ' . $applicant->last_name) }}</td>
+                    <td>
+                        {{ trim($applicant->first_name . ' ' . $applicant->last_name) }}
+                        @if($applicant->user)
+                             <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; margin-top: 4px;">
+                                <span style="color: #ffca08;">★</span>
+                                <strong>{{ number_format($applicant->user->average_rating, 1) }}</strong>
+                                <span style="color: #605e5c;">({{ $applicant->user->review_count }})</span>
+                            </div>
+                        @else
+                            <div style="font-size: 12px; color: #a19f9d; margin-top: 4px;">(Guest)</div>
+                        @endif
+                    </td>
                     <td>
                         <div>{{ $applicant->email }}</div>
                         <div>{{ $applicant->phone ?? 'N/A' }}</div>
@@ -74,6 +86,12 @@
                         @endif
                     </td>
                     <td>{{ ucfirst($applicant->status) }}</td>
+                    <td>
+                        @if($applicant->user_id)
+                            <button type="button" class="btn btn-warning btn-sm" onclick="openRatingModal({{ $applicant->user_id }}, {{ $jobPosting->id }})">Rate</button>
+                        @endif
+                        <a href="{{ route('applicants.show', $applicant->id) }}" class="btn btn-primary btn-sm">View</a>
+                    </td>
                 </tr>
                 @empty
                 <tr>
@@ -88,6 +106,19 @@
         {{ $applicants->links() }}
     </div>
 </div>
+</div>
+
+@include('partials.rating-modal')
+
+@push('scripts')
+<script>
+    function openRatingModal(reviewedId, jobPostingId) {
+        document.getElementById('rating_reviewed_id').value = reviewedId;
+        document.getElementById('rating_job_posting_id').value = jobPostingId;
+        $('#ratingModal').modal('show');
+    }
+</script>
+@endpush
 @endsection
 
 

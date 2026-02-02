@@ -14,6 +14,13 @@
     <div style="display: grid; gap: 16px;">
         <div>
             <strong>Company:</strong> {{ $jobPosting->company_name }}
+            @if($jobPosting->user)
+                <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 14px; background: #faf9f8; padding: 2px 8px; border-radius: 12px; border: 1px solid #edebe9;">
+                    <span style="color: #ffca08;">★</span>
+                    <strong>{{ number_format($jobPosting->user->average_rating, 1) }}</strong>
+                    <span style="color: #605e5c; font-size: 12px;">({{ $jobPosting->user->review_count }})</span>
+                </span>
+            @endif
         </div>
         <div>
             <strong>Location:</strong> {{ $jobPosting->location }}
@@ -79,6 +86,9 @@
             @if(auth()->user()->isEmployee())
                 @if($hasApplied)
                     <button class="btn btn-secondary" disabled>Already Applied</button>
+                    <button type="button" class="btn btn-warning" onclick="openRatingModal({{ $jobPosting->user_id }}, {{ $jobPosting->id }})">
+                        Rate Employer
+                    </button>
                 @else
                     <form method="POST" action="{{ route('jobs.apply', $jobPosting) }}">
                         @csrf
@@ -93,5 +103,17 @@
         @endauth
     </div>
 </div>
+
+@include('partials.rating-modal')
+
+@push('scripts')
+<script>
+    function openRatingModal(reviewedId, jobPostingId) {
+        document.getElementById('rating_reviewed_id').value = reviewedId;
+        document.getElementById('rating_job_posting_id').value = jobPostingId;
+        $('#ratingModal').modal('show');
+    }
+</script>
+@endpush
 @endsection
 

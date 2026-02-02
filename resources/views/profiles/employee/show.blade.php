@@ -51,9 +51,19 @@
                     <h2 style="font-size: 20px; font-weight: 700; color: #323130; margin-bottom: 4px;">
                         {{ !empty($profile->parsed_data['name']) ? $profile->parsed_data['name'] : $profile->name }}
                     </h2>
-                    <p style="color: #605e5c; font-size: 14px; margin-bottom: 20px;">
+                    <p style="color: #605e5c; font-size: 14px; margin-bottom: 10px;">
                         {{ !empty($profile->parsed_data['email']) ? $profile->parsed_data['email'] : auth()->user()->email }}
                     </p>
+                    
+                    @php
+                        $avgRating = auth()->user()->average_rating;
+                        $reviewCount = auth()->user()->review_count;
+                    @endphp
+                    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <span style="color: #ffca08; font-size: 18px;">★</span>
+                        <span style="font-weight: 600; color: #323130;">{{ number_format($avgRating, 1) }}</span>
+                        <span style="color: #605e5c; font-size: 13px;">({{ $reviewCount }} reviews)</span>
+                    </div>
 
                     @if(auth()->user()->cv_path)
                         <div style="padding-top: 20px; border-top: 1px solid #edebe9;">

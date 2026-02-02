@@ -57,9 +57,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/employee/profile', [ProfileController::class, 'updateEmployeeProfile'])->name('employee.profile.update');
     Route::post('/employee/profile/refresh-cv', [ProfileController::class, 'refreshFromCv'])->name('employee.profile.refresh-cv');
 
-    Route::get('/employer/profile', [ProfileController::class, 'showEmployerProfile'])->name('employer.profile');
     Route::get('/employer/profile/edit', [ProfileController::class, 'editEmployerProfile'])->name('employer.profile.edit');
     Route::put('/employer/profile', [ProfileController::class, 'updateEmployerProfile'])->name('employer.profile.update');
+
+    // Reviews
+    Route::post('/reviews', [App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
 });
 
 // Dashboard and other routes (Protected)
