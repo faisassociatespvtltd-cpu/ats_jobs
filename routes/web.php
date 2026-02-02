@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function () {
 
     // Memberships
     Route::resource('memberships', MembershipController::class);
+    Route::post('memberships/invite', [MembershipController::class, 'sendInvite'])->name('memberships.invite');
     Route::get('memberships/referrals/list', [MembershipController::class, 'referrals'])->name('memberships.referrals');
 });
 

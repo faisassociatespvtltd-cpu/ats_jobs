@@ -19,8 +19,11 @@ class AuthController extends Controller
     /**
      * Show the welcome/landing page with signup options.
      */
-    public function welcome()
+    public function welcome(Request $request)
     {
+        if ($request->has('ref')) {
+            session(['referral_code' => $request->query('ref')]);
+        }
         return view('auth.welcome');
     }
 
@@ -49,6 +52,23 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'user_type' => 'employee',
         ]);
+
+        // Handle Referral
+        $referralCode = session('referral_code');
+        if ($referralCode) {
+            $referrerMembership = \App\Models\Membership::where('referral_code', $referralCode)->first();
+            if ($referrerMembership) {
+                \App\Models\Membership::create([
+                    'user_id' => $user->id,
+                    'membership_type' => 'basic',
+                    'start_date' => now(),
+                    'status' => 'active',
+                    'referral_code' => strtoupper(substr(md5(uniqid()), 0, 8)),
+                    'referred_by' => $referrerMembership->user_id
+                ]);
+                $referrerMembership->increment('referral_count');
+            }
+        }
 
         // Send OTP
         $this->sendOtpEmail($user);
@@ -212,6 +232,23 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'user_type' => 'employer',
         ]);
+
+        // Handle Referral
+        $referralCode = session('referral_code');
+        if ($referralCode) {
+            $referrerMembership = \App\Models\Membership::where('referral_code', $referralCode)->first();
+            if ($referrerMembership) {
+                \App\Models\Membership::create([
+                    'user_id' => $user->id,
+                    'membership_type' => 'basic',
+                    'start_date' => now(),
+                    'status' => 'active',
+                    'referral_code' => strtoupper(substr(md5(uniqid()), 0, 8)),
+                    'referred_by' => $referrerMembership->user_id
+                ]);
+                $referrerMembership->increment('referral_count');
+            }
+        }
 
         // Send OTP
         $this->sendOtpEmail($user);

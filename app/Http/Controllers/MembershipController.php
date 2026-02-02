@@ -149,4 +149,28 @@ class MembershipController extends Controller
 
         return view('memberships.my-referrals', compact('membership', 'referrals'));
     }
+
+    public function sendInvite(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = auth()->user();
+        
+        // Ensure membership exists
+        if (!$user->membership) {
+             return back()->with('error', 'You need an active membership to refer friends.');
+        }
+
+        $referralCode = $user->membership->referral_code;
+        $link = url('/welcome?ref=' . $referralCode);
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($request->email)->send(new \App\Mail\InviteFriendMail($user->name, $link));
+            return back()->with('success', 'Invitation sent successfully to ' . $request->email);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to send invitation: ' . $e->getMessage());
+        }
+    }
 }

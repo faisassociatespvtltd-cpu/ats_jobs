@@ -9,9 +9,27 @@
         <p class="text-muted">Invite your colleagues and friends to join ATS Job Portal and help them find their next big opportunity.</p>
     </div>
 
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card p-4">
+                <h3 style="font-size: 18px; margin-bottom: 15px;">Your Referral Stats</h3>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div style="font-size: 24px; font-weight: 600;">{{ $membership->referral_count }}</div>
+                        <div class="small text-muted">Friends Invited & Joined</div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size: 24px; font-weight: 600;">{{ ucfirst($membership->membership_type) }}</div>
+                        <div class="small text-muted">Current Plan</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
-            <div class="card p-4 mb-4" style="background: #f8f9fa; border: 1px dashed #0078D4;">
+            <div class="card p-4 h-100 mb-4" style="background: #f8f9fa; border: 1px dashed #0078D4;">
                 <h3 style="font-size: 18px; margin-bottom: 15px;">Your Referral Code</h3>
                 <div class="d-flex align-items-center gap-3">
                     <div style="font-size: 16px; font-weight: 600; color: #0078D4; padding: 10px 20px; background: white; border-radius: 8px; border: 1px solid #edebe9; word-break: break-all;">
@@ -26,18 +44,17 @@
         </div>
 
         <div class="col-md-6">
-            <div class="card p-4 mb-4">
-                <h3 style="font-size: 18px; margin-bottom: 15px;">Your Referral Stats</h3>
-                <div class="row text-center">
-                    <div class="col-6">
-                        <div style="font-size: 24px; font-weight: 600;">{{ $membership->referral_count }}</div>
-                        <div class="small text-muted">People Referred</div>
+            <div class="card p-4 h-100 mb-4">
+                <h3 style="font-size: 18px; margin-bottom: 15px;">Invite via Email</h3>
+                <form action="{{ route('memberships.invite') }}" method="POST">
+                    @csrf
+                    <div class="form-group mb-3">
+                        <label>Friend's Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="enter.email@example.com" required>
                     </div>
-                    <div class="col-6">
-                        <div style="font-size: 24px; font-weight: 600;">{{ ucfirst($membership->membership_type) }}</div>
-                        <div class="small text-muted">Member Plan</div>
-                    </div>
-                </div>
+                    <button type="submit" class="btn btn-primary w-100">Send Invitation</button>
+                </form>
+                <p class="mt-3 small text-muted">We'll send them a professional invitation with your unique link.</p>
             </div>
         </div>
     </div>
