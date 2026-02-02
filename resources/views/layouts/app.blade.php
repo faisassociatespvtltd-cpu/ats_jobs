@@ -443,12 +443,12 @@
                 <a href="#" class="mt-3">
                     @auth
                         @if(auth()->user()->isSuperAdmin())
-                            ATS Recruitment
+                            My Jobs
                         @else
                             My Jobs
                         @endif
                     @else
-                        ATS Recruitment
+                        My Jobs
                     @endauth
                 </a>
                 <ul class="submenu">
