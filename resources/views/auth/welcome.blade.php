@@ -129,6 +129,10 @@
 </head>
 <body>
     <div class="welcome-container">
+        <div style="background: #0078D4; color: white; display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; margin: -40px -40px 40px -40px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 600;">
+            <span>Powered by Fais Associates Private Limited</span>
+            <a href="https://www.fais.digital/" target="_blank" style="text-decoration: none; color: white;">www.fais.digital</a>
+        </div>
         <img src="{{ asset('assets/images/eitmad.png') }}" alt="Logo" class="welcome-logo">
         <h1 class="welcome-title">Welcome to ATS Job Portal</h1>
         <p class="welcome-subtitle">Find your dream job or the perfect candidate</p>
